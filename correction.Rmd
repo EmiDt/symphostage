@@ -1,0 +1,115 @@
+---
+title: "correction"
+output: html_document
+---
+```{r doc settings,  package, message=FALSE, warning=FALSE}
+rm(list = ls())
+knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
+library(dplyr)
+library(reshape2)
+library(magrittr)
+```
+
+```{r data}
+DW <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\PoidsSecSympho.csv",header = T, dec = ",", sep=";")
+Ecorce<- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - Individuals2.csv", header = T, dec=",", sep=";")[-1]
+LTh <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - Fresh.csv", header = T, dec=".", sep=";")[-1]
+LA <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Results Total Threshold- corrigé.csv", header = T, dec=".", sep=";")
+densite <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\densite sympho.csv",header = T, dec = ",", sep=";")
+SPAD <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - SPAD.csv",header = T, dec = ".", sep=",")[-1]
+paracou <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Symphonia_Paracou.csv",header = T, dec = ",", sep=";") %>% 
+  filter(campagne == 2015)
+```
+
+
+
+```{r}
+cols <- c("n_parcelle", "n_carre", "n_arbre")
+names(Ecorce)[3:5] <- cols
+names(SPAD)[1:3] <-  cols
+names(LTh)[1:3] <-  cols
+
+anti_join(Ecorce, SPAD, by = cols)
+anti_join(Ecorce, LTh, by = cols)
+
+data <- Ecorce %>% 
+  left_join(SPAD, by = cols) %>% 
+  left_join(LTh, by = c(cols, "Feuille"))
+
+data %>%  left_join(paracou, by = cols) %>% 
+  filter(idArbre == NA)
+
+indParacou <- with(paracou, paste(paste0("P", n_parcelle), n_carre, 
+                              n_arbre, sep = "_"))
+indData <- with(data, paste(paste0("P", n_parcelle), n_carre, 
+                              n_arbre, sep = "_"))
+base::setdiff(indData, indParacou)
+
+```
+
+
+
+```{r}
+data2 <- data %>%  left_join(paracou, by = cols ) 
+
+names(DW)[1:3] <- cols
+DW<- DW  %>%  
+  rename("1" = F1) %>% 
+  rename("2" = F2) %>% 
+  rename("3" = F3) %>%
+  rename("4" = F4) %>% 
+  rename("5" = F5) %>% 
+  select(cols, "1","2","3","4","5") %>% 
+  reshape2::melt(DW, id.vars = c("n_parcelle","n_carre", "n_arbre"), measure.vars = c("1","2","3","4","5"), variable.name = "Feuille" ,value.name ="DryW" ) %>% 
+  arrange(n_parcelle, n_carre, n_arbre, Feuille) %>% 
+  mutate(Feuille = as.integer(Feuille)) %>% 
+  rename("n_feuille"= Feuille)
+  
+# DW %<>% rename("n_feuille"= Feuille)
+data2 %<>% rename("n_feuille"= Feuille) 
+
+cols <- c("n_parcelle", "n_carre", "n_arbre", "n_feuille")
+
+anti_join(DW, data2, by = cols)
+
+data3 <- data2 %>% left_join(DW, by = cols) 
+
+data3 %>% 
+  filter(is.na(DryW)) %>% 
+  select(n_parcelle, n_carre, n_arbre, n_feuille,
+         SPAD.1, LT.1, Poids.frais, DryW)
+
+#DW[grep("symphonia", DW$F6),]
+
+
+
+```
+
+```{r}
+la2 <- LA %>%  
+  rename(n_parcelle = Parcelle , n_carre = Carré , n_arbre = Numéro) %>% 
+  select(n_parcelle, n_carre, n_arbre) %>% 
+  distinct()
+
+data4 <- data3 %>% 
+  select(n_parcelle, n_carre, n_arbre) %>% 
+  distinct()
+
+LA_correct <- anti_join(la2, data4) %>% 
+  mutate(n_parcelle_c = c(14, 13, 13, 11, 11, 7, 6, 2, 1)) %>% 
+  mutate(n_carre_c = c(2, 2, 3, 1, 4, 3, 2, 1, 4)) %>% 
+  mutate(n_arbre_c = c(2874, 469, 538, 742, 983, 2806, 2976, 2301, 2853)) 
+write.csv2(LA_correct, "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_correct.csv")
+```
+
+```{r}
+densite2 <- densite %>% 
+  rename(n_parcelle = Parcelle , n_arbre = Num.ro, n_carre = Carr.) 
+  
+densite2 %>%  mutate(n_parcelle_c = c(14,14)) %>% 
+  mutate(n_carre_c = c(1,2)) %>% 
+  mutate(n_arbre_c = c(2830,87))
+
+anti_join(densite2, data3)
+```
+

@@ -1,0 +1,140 @@
+---
+title: "Test"
+output: 
+  html_document:
+    toc: true
+    toc_float: yes
+  pdf_document: default
+---
+
+```{r setup}
+knitr::opts_chunk$set(eval = F, cache = T)
+library(ggplot2)
+library(ggpubr)
+library(reshape2)
+library(dplyr)
+```
+
+# Chargement des données
+
+```{r, eval=FALSE}
+choose.files()
+```
+
+```{r}
+densite <- read.csv("C:\\Users\\emduc\\Desktop\\densite sympho.csv",header = T, dec = ",", sep=";")
+Psec <- read.csv("C:\\Users\\emduc\\Desktop\\PoidsSecSympho.csv", header = T, dec=",", sep=";")
+```
+
+# Premier essai
+
+```{r, fig.cap="Ecorce en fonction de l'infradensite"}
+densite %>% 
+  select(Ecorce,IDEcorce) %>% 
+  filter(Ecorce != "") %>% 
+  ggplot(aes(x = Ecorce, y = IDEcorce,
+             fill = Ecorce)) +
+  geom_boxplot() +
+  ylab("Infradensite du bois") +
+  scale_fill_discrete(labels = c("Globulifera",
+                                 "Sp1",
+                                 "Hybride"))+ 
+  stat_compare_means(method = "anova", 
+                     label.y = 0.73) +
+  stat_compare_means(method = "t.test", 
+                     label = "p.signif",
+                     ref.group = ".all.",
+                     label.y = 0.72)
+```
+
+```{r}
+densite %>% 
+  select(Ecorce,Idbois) %>% 
+  filter(Ecorce != "") %>% 
+  aov(Idbois ~ Ecorce, data = .) %>% 
+  TukeyHSD()
+```
+
+```{r}
+densite %>% 
+  select(Ecorce,Idbois,IDEcorce) %>% 
+  filter(Ecorce != "") %>% 
+  melt(id.vars = "Ecorce",
+       variable.name = "Tissue",
+       value.name = "Infradensite") %>% 
+  ggplot(aes(x = Ecorce, y = Infradensite,
+             fill = Ecorce)) +
+  geom_boxplot() +
+  facet_wrap(~Tissue, scales = "free") +
+  ylab("Infradensite") +
+  scale_fill_discrete(labels = c("Globulifera",
+                                 "Sp1",
+                                 "Hybride"))
+```
+
+```{r}
+densite %>% 
+  select(Ecorce,Idbois,IDEcorce,jour) %>% 
+  filter(Ecorce !="") %>% 
+  melt(id.vars=c("Ecorce","jour"),variable.name= "Tissue",value.name = "Infradensite") %>% 
+  ggplot(aes(x=interaction(jour,Ecorce), y=Infradensite))+
+  geom_boxplot()+
+  facet_wrap(~Tissue, scales = "free")
+
+densite %>% 
+  select(Ecorce,Idbois,IDEcorce,jour) %>% 
+  filter(Ecorce !="") %>% 
+  aov(Idbois~Ecorce+jour, data = .) %>% 
+  summary()
+```
+# bark investment/ morphotype 
+## Data plot 
+Plot to see if there is any difference in the bark investement between bark morphotypes. Bark investement (BI) has been calculeted with (Perez et al 2012) 
+BI = Bark thickness / stem radius 
+```{r}
+densite %>% 
+  select(Ecorce,bark.investment) %>% 
+  filter(Ecorce!="") %>% 
+  ggplot(aes(x=Ecorce, y=bark.investment, fill= Ecorce))+
+  geom_boxplot()+
+  ylab("Bark investement") +
+  scale_fill_discrete(labels = c("Globulifera",
+                                 "Sp1",
+                                 "Hybride"))+
+ stat_compare_means(method = "anova", 
+                     label.y = 0.73) +
+    stat_compare_means(method = "t.test", 
+                     label = "p.signif",
+                     ref.group = ".all.",
+                     label.y = 0.71)
+  
+  
+   
+  
+```
+
+## Data test 
+
+```{r}
+densite %>% 
+  select(Ecorce,bark.investment) %>% 
+  filter(Ecorce !="") %>% 
+
+  kruskal.test(bark.investment,Ecorce, data = densite  %>% select(Ecorce,bark.investment) %>%  filter(Ecorce !="")) 
+  
+               
+               aov(bark.investment~Ecorce, data = densite %>% select(Ecorce,bark.investment) %>% 
+  filter(Ecorce !="")) %>% 
+  summary.aov()
+               
+s <- densite$bark.investment %>%  filter(Ecorce !="") %>% filter(Ecorce == "S") 
+shapiro.test(as.numeric(s))
+
+  
+               
+```
+
+kruskal-wallis : test pour quantitatif et qualitatif à plus de deux catégories , non appariées , non-paramétrique (distribution non normale). Si la p-value est > 0.05 c'est qu'il y a au moins un des groupes qui est different des autres. Mais on ne peut pas savoir lequel il faut faire un autre test. Anova idem mais en paramaetrique (données normale). Il faut donc d'abord tester la normalité des données avec le shapiro.test et l'homogénéité des variances avec var.test 
+
+
+
