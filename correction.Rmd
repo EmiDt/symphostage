@@ -14,11 +14,25 @@ library(magrittr)
 DW <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\PoidsSecSympho.csv",header = T, dec = ",", sep=";")
 Ecorce<- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - Individuals2.csv", header = T, dec=",", sep=";")[-1]
 LTh <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - Fresh.csv", header = T, dec=".", sep=";")[-1]
-LA <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Results Total Threshold- corrigé.csv", header = T, dec=".", sep=";")
+
+LA_include_holes <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Results include holes.csv", header = T, dec=".", sep=";") %>% 
+  mutate(ID = gsub("Q","",ID)) %>% 
+  mutate(ID = gsub("p","P",ID))
+
 densite <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\densite sympho.csv",header = T, dec = ",", sep=";")
 SPAD <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - SPAD.csv",header = T, dec = ".", sep=",")[-1]
 paracou <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Symphonia_Paracou.csv",header = T, dec = ",", sep=";") %>% 
   filter(campagne == 2015)
+
+LA_exclude_holes <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Results excludes holes.csv", header = T, dec=".", sep=";") %>% 
+  mutate(ID = gsub("Q","",ID)) %>% 
+  mutate(ID = gsub("p","P",ID))
+
+LA_corrected_scans <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Results Scans corrected.csv", header = T, dec=".", sep=";")
+
+LA_misscount_include <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Results_include_holes_ misscount.csv", header = T, dec=".", sep=";")
+
+LA_misscount_exclude <- read.csv ("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Results_exclude_holes_ misscount.csv", header = T, dec=".", sep=";")
 ```
 
 
@@ -47,6 +61,7 @@ base::setdiff(indData, indParacou)
 
 ```
 
+# Dry weight
 
 
 ```{r}
@@ -84,10 +99,186 @@ data3 %>%
 
 
 ```
+# LA 
+
+document charged at the begining : LA_include_holes and LA_exclude_holes are a final document of multiple table merging  named as : Results_ exclude or include.csv. 
+
+
+
+Also I am not sure that there is a real difference between exclude and include holes, even if it is an option in "Ananlyze particules" on ImageJ.
+
+Data_count is the index repetition references to check ImageJ count the right number of leaves on every scans.
 
 ```{r}
-la2 <- LA %>%  
-  rename(n_parcelle = Parcelle , n_carre = Carré , n_arbre = Numéro) %>% 
+data3_count <- data3 %>% 
+  select(n_parcelle, n_carre, n_arbre, n_feuille, DryW) %>% 
+  mutate( ID = paste(paste0("P", n_parcelle), n_carre, 
+                              n_arbre, sep = "-")) %>% 
+  filter(!(is.na(DryW))) %>% 
+  select(n_parcelle, n_carre, n_arbre, ID) %>% 
+  group_by(n_parcelle, n_carre, n_arbre, ID) %>% 
+  summarise(n_data = n())
+
+```
+
+
+## include_holes 
+
+### Original results and corrected results combination 
+
+Join cerrected and original data table. 
+So index homogeneisation in both table : 
+
+
+```{r}
+LA_corrected_scans <- LA_corrected_scans %>% 
+  rename(ID = X.1) %>% 
+  mutate(ID = paste0("P",ID)) %>% 
+  mutate(ID = gsub("_","-",ID)) %>%
+  select(-X)
+```
+
+column creation with leaf number for the moment it is an automatic count from five to one (order on the scan and automatic detection by imageJ), but for 4 leaves individuals the one will be missing also disordered scan are not notified and corrected yet. 
+
+```{r LA leaf numbers}
+## raw
+LA_include_holes <- LA_include_holes %>% mutate(Feuille = NA)
+LA_include_holes$Feuille[1] = 5
+count = 5
+for (i in 2:length(LA_include_holes$ID)) 
+{
+  if(LA_include_holes$ID[i-1] == LA_include_holes$ID[i]) {count = count-1}
+  else {count <- 5}
+  LA_include_holes$Feuille[i]<-count
+}
+
+## corrected
+LA_corrected_scans <- LA_corrected_scans %>% mutate(Feuille = NA)
+LA_corrected_scans$Feuille[1] = 5
+count = 5
+for (i in 2:length(LA_corrected_scans$ID)) 
+{
+  if(LA_corrected_scans$ID[i-1] == LA_corrected_scans$ID[i]) {count = count-1}
+  else {count <- 5}
+  LA_corrected_scans$Feuille[i]<-count
+}
+```
+
+
+Data table aglomeration with supressing any observation but with a simple test : if there is a value on the corrected column it will be choose (data from LA_corrected_scans) and if it is not the value in the original column (data from LA_include_holes) will be choose.  With column name : .o = origin, .c = correction and  .f = final
+
+
+```{r}
+# Final Table (Sylvain)
+
+LA_include_corrected  <- LA_include_holes %>% 
+  full_join(LA_corrected_scans, 
+            by = c("ID", "Feuille"),
+            suffix = c(".o", ".c"), copy=T)  %>% 
+  mutate(Area.f = ifelse(is.na(Area.c), Area.o, Area.c)) %>% 
+  select(ID, Feuille, Area.f)
+ 
+
+  
+```
+
+Now we have a transitory final table which have to be screened one again to know if there is missing value due to the  automatic sensitivity detection (7-infinity in ImageJ). Because there is small leaves that have an area smaller than 7 but it is easier to select non detected leaves and re-analyze them than use  a lower sensitivity and take into count scan artefacts. 
+
+
+### non count leaf detection
+Sélection uniquement des identifiant via group by et ajout avec summarise du nombre de répétition de l'identifiant groupé pour data3 dans data3_count. De même on fait ca avec LA_exclude_holes et plus tard avec include_ holes dans LA_count. Et en plus on créer un index avec P pour correspondre au nom des scan.pdf auquel on ajoute aussi une colonne avec le numéro de la ligne correspondante afin de pouvoir faire la correspondance avec les fichier d'ellispe en sortie d'Image J, que l'on ne peut pas directement nommés avec les noms des scan.pdf. 
+
+PS : pas besoin de l'arrange ID l'ensemble des données dans la table sont déjà ordonnée commes les sorties d'ImageJ.
+
+
+
+```{r misscount detection}
+
+
+LA_ID_misscount <- LA_include_corrected %>% 
+  group_by(ID) %>% 
+  summarise(n_LA = n()) %>% 
+  ungroup() %>% 
+  filter(n_LA !=5) 
+
+#LA_ID_misscount$Ellipse_File_ID <- 1:nrow(LA_include_holes) 
+
+LA_ID_misscount %>% 
+  left_join(data3_count) %>% 
+  mutate(n_diff = n_data - n_LA) %>% 
+  select(ID, n_diff, n_LA, Ellipse_File_ID) 
+  
+```
+
+
+
+Here we have 23 missdetection  with 4 leaves individuals which are noticed with n_diff = 0, NA in n_diff correspond to wrong ID which also have misscountleaves that we need to re-analize and then replace in LA_include_corrected to have a final datatable.
+
+
+
+### total corrected and misscount combination 
+As it has been done for Original and corrected we are going to correct index name
+
+```{r misscount data}
+LA_misscount_include <-  LA_misscount_include %>% 
+  select(ID, Area, Parcelle, Carre, Numero) %>% 
+   mutate(ID = gsub("p","P",ID)) 
+
+```
+
+then for each index repetition we give a leaf number from five to 1 but does not consider disorder or four leaves individuals yet.
+
+
+```{r misscount leafnumber}
+LA_misscount_include <- LA_misscount_include %>% mutate(Feuille = NA)
+LA_misscount_include$Feuille[1] = 5
+count = 5
+for (i in 2:length(LA_misscount_include$ID)) 
+{
+  if(LA_misscount_include$ID[i-1] == LA_misscount_include$ID[i]) {count = count-1}
+  else {count <- 5}
+  LA_misscount_include$Feuille[i]<-count
+}
+
+```
+
+Now combination with full corrected data table : La_include_corrected
+
+```{r LA data final table creation}
+
+LA_data_include_final <- LA_misscount_include %>% 
+  select(ID, Area, Feuille) %>% 
+  full_join(LA_include_corrected, 
+            by = c("ID", "Feuille")) %>% 
+  rename(Area.m = Area) %>% # .m = misscount 
+  mutate(Area.d = ifelse(is.na(Area.m), Area.f, Area.m)) %>% # .d = data
+  select(ID, Area.d, Feuille)
+```
+
+Verification that nothing has been forgot
+
+```{r repetition check final}
+LA_data_include_count <- LA_data_include_final %>% 
+  select(ID) %>% 
+  group_by(ID) %>% 
+  summarise(n_LA = n())
+
+data3_count %>% 
+  left_join(LA_data_include_count) %>% 
+  filter(n_data != n_LA) %>%
+  ungroup() %>% 
+  select(ID, n_data, n_LA) 
+
+```
+
+
+
+### index verification 
+
+
+```{r index check}
+LA_include_index <- LA_data_include_final%>% 
+  rename(n_parcelle=Parcelle   , n_carre= Carre  , n_arbre =Numero ) %>%
   select(n_parcelle, n_carre, n_arbre) %>% 
   distinct()
 
@@ -95,12 +286,218 @@ data4 <- data3 %>%
   select(n_parcelle, n_carre, n_arbre) %>% 
   distinct()
 
-LA_correct <- anti_join(la2, data4) %>% 
-  mutate(n_parcelle_c = c(14, 13, 13, 11, 11, 7, 6, 2, 1)) %>% 
-  mutate(n_carre_c = c(2, 2, 3, 1, 4, 3, 2, 1, 4)) %>% 
-  mutate(n_arbre_c = c(2874, 469, 538, 742, 983, 2806, 2976, 2301, 2853)) 
-write.csv2(LA_correct, "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_correct.csv")
+anti_join(LA_include_index,data4 )
+anti_join(data4,LA_include_index)
+
+
+LA_include_index_correspondance <- anti_join(LA_include_index, data4)%>%
+  mutate(n_parcelle_c = c(1,2,6,7, 7 ,11, 11,  13, 13, 14,15, 15,16 )) %>% 
+  mutate(n_carre_c = c(4,1,2,3, 3,1, 4, 2, 3,  2 ,2 ,1,1)) %>% 
+  mutate(n_arbre_c = c(2853,2301,2976,2806, 2666 , 742, 983,469 ,538,2874, 1113,575, 2783  )) 
+
+write.csv2(LA_include_index_correspondance, "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_include_index_correspondance.csv")
+
+
 ```
+
+### delete two non symphonia leaves
+
+"P13-2-662" , "P14-1-361" , respectively leaf number 1 and 5 that have to be deleted because there are not from a symphonia tree. 
+
+```{r non sympho leaf}
+LA_data_include_final <- LA_data_include_final %>% 
+  mutate( IndexFeuille = paste(ID, Feuille, sep="_")) %>% 
+  filter(!(IndexFeuille == "P13-2-662_1")) %>% 
+  filter(!(IndexFeuille == "P14-1-361_5")) %>% 
+  select(-IndexFeuille)
+
+#write.csv2(LA_data_include_final , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_data_include_final.csv")
+
+
+```
+
+
+### disordered leaves number 
+
+checked disordered and leaf number re-attribution by hand in La_data_include_final.
+
+
+
+## exclude_holes 
+
+### Original results and corrected results combination 
+this is exactly the same method as used for LA_include_holes and if everything is ok misscounted scan are the same because they have been analyse with identical parameters threeshold images. And we use the same data for LA_corrected_scans be cause image traitment to recover leaves area create holes in threeshold that does not correspond to real herbivory damage. 
+
+
+```{r}
+LA_exclude_holes <- LA_exclude_holes %>% 
+  mutate(ID =paste( paste0("P" ,Parcelle), Carre , Numero, sep="-"))
+
+```
+
+
+```{r LA leaf numbers}
+## raw
+LA_exclude_holes <- LA_exclude_holes %>% mutate(Feuille = NA)
+LA_exclude_holes$Feuille[1] = 5
+count = 5
+for (i in 2:length(LA_exclude_holes$ID)) 
+{
+  if(LA_exclude_holes$ID[i-1] == LA_exclude_holes$ID[i]) {count = count-1}
+  else {count <- 5}
+  LA_exclude_holes$Feuille[i]<-count
+}
+
+```
+
+
+```{r}
+# Final Table (Sylvain)
+
+LA_exclude_corrected <- LA_exclude_holes %>% 
+  full_join(LA_corrected_scans, 
+            by = c("ID", "Feuille"),
+            suffix = c(".o", ".c")) %>% # .o = origin, .c = correction
+  mutate(Area.f = ifelse(is.na(Area.c), Area.o, Area.c)) %>%  # .f = final
+  select(ID, Parcelle, Carre, Numero, Area.f, Feuille)
+```
+
+
+### non count leaf detection
+
+Same methode as previously , here is creation count table. 
+ 
+```{r}
+
+LA_count_exclude <- LA_exclude_corrected %>% 
+  rename(n_parcelle = Parcelle, 
+         n_carre = Carre, 
+         n_arbre = Numero) %>% 
+  select(n_parcelle, n_carre, n_arbre, ID) %>% 
+  group_by(n_parcelle, n_carre, n_arbre, ID) %>% 
+  summarise(n_LA = n()) %>% 
+  ungroup()
+
+LA_count_exclude$Ellipse_File_ID <- 1:nrow(LA_count_exclude) 
+
+```
+
+Here we compare data3_count and LA_count_exclude.
+
+```{r}
+data3_count %>% 
+  left_join(LA_count_exclude) %>% 
+  filter(n_data != n_LA) %>%
+  ungroup() %>% 
+  select(ID, Ellipse_File_ID, n_data, n_LA) 
+
+```
+
+As expected, there are 17 ID with not enought number of detected leaves, normaly 5 leaves. Here individuals which originally have only 4 leaves are not counted because here we make only the difference between data3 and LA_exclude and it is for 4 individuals in the original scan data and 2 other individuals spotted after scans : "P10-3-942","P1-1-267", "P8-3-3218", "P12-4-3276" and "P13-2-662" , "P14-1-361".
+
+Now a new ImageJ analysis can be done to calculate missing value and finally create a final document with normaly 2010 observations and not only 1981 in LA_exclude_holes. 
+
+
+
+
+### total corrected and misscount combination 
+As it has been done for Original and corrected we are going to correct index name
+
+
+```{r}
+LA_misscount_exclude <-  LA_misscount_exclude %>% 
+  select(ID, Area, Parcelle, Carre, Numero) %>% 
+   mutate(ID = gsub("p","P",ID)) 
+  
+```
+
+
+
+then for each index repetition we give a leaf number from five to 1 but does not consider disorder or four leaves individuals yet.
+
+```{r}
+LA_misscount_exclude <- LA_misscount_exclude %>% mutate(Feuille = NA)
+LA_misscount_exclude$Feuille[1] = 5
+count = 5
+for (i in 2:length(LA_misscount_exclude$ID)) 
+{
+  if(LA_misscount_exclude$ID[i-1] == LA_misscount_exclude$ID[i]) {count = count-1}
+  else {count <- 5}
+  LA_misscount_exclude$Feuille[i]<-count
+}
+
+```
+
+
+Now combination with full corrected data table : La_exclude_corrected
+
+
+```{r}
+
+LA_data_exclude_final <- LA_misscount_exclude %>% 
+  select(ID, Area, Feuille, Parcelle, Carre, Numero) %>% 
+  full_join(LA_exclude_corrected, 
+            by = c("ID", "Feuille", "Parcelle", "Carre", "Numero")) %>% 
+  rename(Area.m = Area) %>% # .m = misscount 
+  mutate(Area.d = ifelse(is.na(Area.m), Area.f, Area.m)) %>%  # .d = data
+  select(ID, Area.d, Feuille, Parcelle, Carre, Numero) 
+```
+
+Verification that nothing has been forgot
+
+
+
+```{r}
+LA_data_exclude_count <- LA_data_exclude_final %>% 
+  select(ID,Parcelle, Carre, Numero) %>% 
+  rename(n_parcelle=Parcelle   , n_carre=Carre  , n_arbre =Numero ) %>% 
+group_by(ID) %>% 
+  summarise(n_LA = n())
+
+data3_count %>% 
+  left_join(LA_data_exclude_count) %>% 
+  filter(n_data != n_LA) %>%
+  ungroup() %>% 
+  select(ID, n_data, n_LA,n_parcelle, n_carre,n_arbre) 
+```
+
+
+zero missing leaves !! 
+
+### index verification 
+
+
+```{r}
+LA_exclude_index <- LA_data_exclude_final%>% 
+  rename(n_parcelle=Parcelle   , n_carre= Carre  , n_arbre =Numero ) %>%
+  select(n_parcelle, n_carre, n_arbre) %>% 
+  distinct()
+
+data4 <- data3 %>% 
+  select(n_parcelle, n_carre, n_arbre) %>% 
+  distinct()
+
+anti_join(LA_exclude_index,data4 )
+anti_join(data4,LA_exclude_index)
+
+
+LA_exclude_index_correspondance <- anti_join(LA_exclude_index, data4)%>%
+  mutate(n_parcelle_c = c(1,2,6,7, 7 ,11, 11,  13, 13, 14,15, 15,16 )) %>% 
+  mutate(n_carre_c = c(4,1,2,3, 3,1, 4, 2, 3,  2 ,2 ,1,1)) %>% 
+  mutate(n_arbre_c = c(2853,2301,2976,2806, 2666 , 742, 983,469 ,538,2874, 1113,575, 2783  )) 
+
+write.csv2(LA_exclude_index_correspondance, "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_exclude_index_correspondance.csv")
+
+
+```
+
+
+
+
+
+
+#deniste
+
 
 ```{r}
 densite2 <- densite %>% 
