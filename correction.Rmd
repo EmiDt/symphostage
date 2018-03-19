@@ -646,11 +646,48 @@ For every leaf of an individuals wood value are the same so if we group by for a
 
 ```{r}
 Full_traits_data <- Full_traits_data %>% 
-  mutate(diameter = (circonf/ pi)) %>%  
+  mutate(diameter = (circonf/ pi)) %>% 
 select(n_parcelle, n_carre, n_arbre, n_feuille, Area_include, Area_exclude, Dawkins, SPAD.1, SPAD.2, SPAD.3, LT.1, LT.2, LT.3 , Poids.frais, idArbre, Xutm, Yutm, diameter, espece, DryW, wood.diameter, bark.thickness, Idbois, IDEcorce) %>% 
-  rename(Fresh_weight = Poids.frais , morphotype = espece , Dry_Weight = DryW , Branch_diameter = wood.diameter, Bark_thickness = bark.thickness, Wood_infra_density = Idbois , Bark_infra_density = IDEcorce)
+  rename(Fresh_weight = Poids.frais , morphotype = espece , Dry_Weight = DryW , Branch_diameter = wood.diameter, Bark_thickness = bark.thickness, Wood_infra_density = Idbois , Bark_infra_density = IDEcorce) 
 
-#write.csv2(Full_traits_data , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_data.csv")
+
+
+```
+
+## trait mean transformation 
+
+```{r trait mean}
+
+Full_traits_data <- Full_traits_data %>% 
+  mutate( SPAD_mean = ((SPAD.1+SPAD.2+SPAD.3) / 3 )) %>% 
+  mutate( LT_mean = ((LT.1+ LT.2+LT.3) / 3 )) 
+  
+```
+
+
+## delete SPAD and LT value for leaf 
+
+Only on mean value for the moment 
+
+ Data$colonne[which(condition sur la ligne)] <- NA
+```{r}
+Full_traits_data<- Full_traits_data %>% 
+  mutate(ID = paste(n_parcelle, n_carre, n_arbre, n_feuille, sep="_"))  
+
+Full_traits_data$SPAD_mean[which(Full_traits_data$ID == "13_2_662_1", Full_traits_data$ID == "14_1_361_5")] <- NA
+
+Full_traits_data$LT_mean[which(Full_traits_data$ID == "13_2_662_1", Full_traits_data$ID == "14_1_361_5")] <- NA
+
+```
+
+## full data table file save 
+
+```{r}
+
+Full_traits_data <- Full_traits_data %>% 
+  select(n_parcelle, n_carre, n_arbre, n_feuille, morphotype, idArbre, Xutm, Yutm, Area_exclude, Area_include, Dawkins, Fresh_weight, Dry_Weight, diameter, SPAD_mean, LT_mean, Branch_diameter, Bark_thickness, Wood_infra_density, Bark_infra_density ) 
+  
+write.csv2(Full_traits_data , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_data.csv")
 
 ```
 
