@@ -597,17 +597,60 @@ data_full2 <- Leaf_Area_data_exclude %>%
 ```
 
 
-#deniste
-
-
+#densite
+## index verification 
 ```{r}
+
 densite2 <- densite %>% 
   rename(n_parcelle = Parcelle , n_arbre = Num.ro, n_carre = Carr.) 
   
-densite2 %>%  mutate(n_parcelle_c = c(14,14)) %>% 
-  mutate(n_carre_c = c(1,2)) %>% 
-  mutate(n_arbre_c = c(2830,87))
+densite_ID_correspondance <- densite2 %>%  
+  anti_join(data_full2, by = c("n_parcelle", "n_carre", "n_arbre")) %>% 
+  mutate(n_parcelle_c = c(14,14)) %>% 
+  mutate(n_carre_c = c(3,2)) %>% 
+  mutate(n_arbre_c = c(445,87)) %>% 
+  select(n_parcelle, n_carre, n_arbre, n_parcelle_c, n_carre_c, n_arbre_c  )
+ 
+  
+```
 
-anti_join(densite2, data3)
+## index correction 
+
+same method as previously , right index replace is done by an ifelse test in a new column. 
+
+```{r}
+densite_corrected <- densite2 %>% 
+  full_join(densite_ID_correspondance, by = c("n_parcelle", "n_carre", "n_arbre")) %>% 
+  mutate( parcelle_f = ifelse(is.na(n_parcelle_c), n_parcelle,n_parcelle_c)) %>% 
+  mutate( carre_f = ifelse(is.na(n_carre_c), n_carre,n_carre_c)) %>% 
+  mutate( arbre_f = ifelse(is.na(n_arbre_c), n_arbre,n_arbre_c)) %>% 
+  select(parcelle_f, carre_f, arbre_f , wood.diameter, bark.thickness, bark.investment, Idbois, IDEcorce) %>% 
+  rename(n_parcelle = parcelle_f, n_carre = carre_f, n_arbre = arbre_f)
+  
+```
+
+## combination with data_full2 
+
+here a full join will be use because only 50 individuals have wood data
+
+```{r}
+
+Full_traits_data <- data_full2 %>% 
+  full_join(densite_corrected, by = c("n_parcelle", "n_carre", "n_arbre"))
+
+```
+
+For every leaf of an individuals wood value are the same so if we group by for an individual it will be ok 
+
+# full_traits table 
+
+```{r}
+Full_traits_data <- Full_traits_data %>% 
+  mutate(diameter = (circonf/ pi)) %>%  
+select(n_parcelle, n_carre, n_arbre, n_feuille, Area_include, Area_exclude, Dawkins, SPAD.1, SPAD.2, SPAD.3, LT.1, LT.2, LT.3 , Poids.frais, idArbre, Xutm, Yutm, diameter, espece, DryW, wood.diameter, bark.thickness, Idbois, IDEcorce) %>% 
+  rename(Fresh_weight = Poids.frais , morphotype = espece , Dry_Weight = DryW , Branch_diameter = wood.diameter, Bark_thickness = bark.thickness, Wood_infra_density = Idbois , Bark_infra_density = IDEcorce)
+
+#write.csv2(Full_traits_data , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_data.csv")
+
 ```
 
