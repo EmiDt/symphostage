@@ -10,9 +10,13 @@ library(reshape2)
 library(magrittr)
 ```
 
+# data upload 
+
 ```{r data}
 DW <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\PoidsSecSympho.csv",header = T, dec = ",", sep=";")
+
 Ecorce<- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - Individuals2.csv", header = T, dec=",", sep=";")[-1]
+
 LTh <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - Fresh.csv", header = T, dec=".", sep=";")[-1]
 
 LA_include_holes <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Results include holes.csv", header = T, dec=".", sep=";") %>% 
@@ -33,9 +37,11 @@ LA_corrected_scans <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\R
 LA_misscount_include <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Results_include_holes_ misscount.csv", header = T, dec=".", sep=";")
 
 LA_misscount_exclude <- read.csv ("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Results_exclude_holes_ misscount.csv", header = T, dec=".", sep=";")
+
+
 ```
 
-
+# data Individuals, SPAD and Leaf thickness from drive
 
 ```{r}
 cols <- c("n_parcelle", "n_carre", "n_arbre")
@@ -102,8 +108,6 @@ data3 %>%
 # LA 
 
 document charged at the begining : LA_include_holes and LA_exclude_holes are a final document of multiple table merging  named as : Results_ exclude or include.csv. 
-
-
 
 Also I am not sure that there is a real difference between exclude and include holes, even if it is an option in "Ananlyze particules" on ImageJ.
 
@@ -178,7 +182,7 @@ Data table aglomeration with supressing any observation but with a simple test :
 LA_include_corrected  <- LA_include_holes %>% 
   full_join(LA_corrected_scans, 
             by = c("ID", "Feuille", "n_parcelle", "n_carre", "n_arbre"),
-            suffix = c(".o", ".c")))  %>% 
+            suffix = c(".o", ".c"))  %>% 
   mutate(Area.f = ifelse(is.na(Area.c), Area.o, Area.c)) %>% 
   select(ID, Feuille, Area.f, n_parcelle, n_carre, n_arbre) %>% 
   rename( n_feuille = Feuille)
@@ -319,22 +323,22 @@ anti_join(LA_include_index,data4 )
 anti_join(data4,LA_include_index)
 
 
-LA_include_index_correspondance <- anti_join(LA_include_index, data4)%>%
+LA_index_correspondance <- anti_join(LA_include_index, data4)%>%
   mutate(n_parcelle_c = c(1,2,6,7, 7 ,11, 11,  13, 13, 14,15, 15,16 )) %>% 
   mutate(n_carre_c = c(4,1,2,3, 3,1, 4, 2, 3,  2 ,2 ,1,1)) %>% 
   mutate(n_arbre_c = c(2853,2301,2976,2806, 2666 , 742, 983,469 ,538,2874, 1113,575, 2783  )) 
 
-#write.csv2(LA_include_index_correspondance, "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_include_index_correspondance.csv")
+#write.csv2(LA_index_correspondance, "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_index_correspondance.csv")
 
 
 ```
 
 Now we know whichwrong index correspond to a right one, we are going to create a know table with corrected name and value because without it we cannot join full trait data table ( data3).
-SO  we comine La_data_include_final and LA_include_index_correspondance and then make a test with ifelse to create corrected coloumn
+SO  we comine La_data_include_final and LA_index_correspondance and then make a test with ifelse to create corrected coloumn
 
 ```{r}
 LA_data_include_final2 <- LA_data_include_final %>% 
-  full_join(LA_include_index_correspondance, by = c("n_parcelle", "n_carre", "n_arbre")) %>% 
+  full_join(LA_index_correspondance, by = c("n_parcelle", "n_carre", "n_arbre")) %>% 
   mutate( parcelle_f = ifelse(is.na(n_parcelle_c), n_parcelle,n_parcelle_c)) %>% 
   mutate( carre_f = ifelse(is.na(n_carre_c), n_carre,n_carre_c)) %>% 
   mutate( arbre_f = ifelse(is.na(n_arbre_c), n_arbre,n_arbre_c)) %>% 
@@ -355,7 +359,7 @@ LA_data_include_final2 <- LA_data_include_final2 %>%
   filter(!(IndexFeuille == "14_1_361_5")) %>% 
   select(-IndexFeuille)
 
-#write.csv2(LA_data_include_final , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_data_include_final.csv")
+#write.csv2(LA_data_include_final2 , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_data_include_final2.csv")
 
 
 ```
@@ -365,13 +369,232 @@ LA_data_include_final2 <- LA_data_include_final2 %>%
 
 disordered leaves and forleaves individual number table is construct by hand with LA_include_EllipsetoID table and here combine to final data table (LA_data_include_final2) with once again an ifesle test to replace the wrong order by the right one. 
 
+```{r}
+LA_data_Leaf_ordered <- read.csv ("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_data_Leaf_ordered.csv", header = T, dec=".", sep=";")
 
+Leaf_Area_data_include <- LA_data_Leaf_ordered %>% 
+  mutate( feuille_f  = ifelse(is.na(disordered), n_feuille,disordered)) %>% 
+  select( n_parcelle, n_carre, n_arbre , feuille_f, Area) %>% 
+  rename( n_feuille = feuille_f)
+  
+```
+
+
+### combination with data3 
+
+```{r}
+data_full <- Leaf_Area_data_include %>%  
+  full_join(data3, by = c( "n_parcelle", "n_carre", "n_arbre", "n_feuille"))
+```
 
 
 
 
 ## exclude_holes 
+Severals variables are in commun with include holes part so they will be not re-defined here : LA_corrected_scans, data3_count, data4 , LA_ ellipse, LA_index_correspondance, LA_data_Leaf_ordered
 
+
+```{r}
+
+LA_exclude_holes <- LA_exclude_holes %>% 
+   rename(n_parcelle = Parcelle , n_carre= Carre , n_arbre = Numero)
+```
+
+column creation with leaf number for the moment it is an automatic count from five to one (order on the scan and automatic detection by imageJ), but for 4 leaves individuals the one will be missing also disordered scan are not notified and corrected yet. 
+
+```{r LA leaf numbers}
+
+LA_exclude_holes <- LA_exclude_holes %>% mutate(Feuille = NA)
+LA_exclude_holes$Feuille[1] = 5
+count = 5
+for (i in 2:length(LA_exclude_holes$ID)) 
+{
+  if(LA_exclude_holes$ID[i-1] == LA_exclude_holes$ID[i]) {count = count-1}
+  else {count <- 5}
+  LA_exclude_holes$Feuille[i]<-count
+}
+
+```
+
+
+Data table aglomeration with supressing any observation but with a simple test : if there is a value on the corrected column it will be choose (data from LA_corrected_scans) and if it is not the value in the original column (data from LA_exclude_holes) will be choose.  With column name : .o = origin, .c = correction and  .f = final
+
+
+```{r}
+# Final Table (Sylvain)
+
+LA_exclude_corrected  <- LA_exclude_holes %>% 
+  full_join(LA_corrected_scans, 
+            by = c("ID", "Feuille", "n_parcelle", "n_carre", "n_arbre"),
+            suffix = c(".o", ".c"))  %>% 
+  mutate(Area.f = ifelse(is.na(Area.c), Area.o, Area.c)) %>% 
+  select(ID, Feuille, Area.f, n_parcelle, n_carre, n_arbre) %>% 
+  rename( n_feuille = Feuille)
+
+```
+
+Now we have a transitory final table which have to be screened one again to know if there is missing value due to the  automatic sensitivity detection (7-infinity in ImageJ). Because there is small leaves that have an area smaller than 7 but it is easier to select non detected leaves and re-analyze them than use  a lower sensitivity and take into count scan artefacts. 
+
+
+### non count leaf detection
+
+Sélection uniquement des identifiant via group by et ajout avec summarise du nombre de répétition de l'identifiant groupé pour data3 dans data3_count. De même on fait ca avec LA_exclude_holes et plus tard avec exclude_ holes dans LA_count. Et en plus on créer un index avec P pour correspondre au nom des scan.pdf auquel on ajoute aussi une colonne avec le numéro de la ligne correspondante afin de pouvoir faire la correspondance avec les fichier d'ellispe en sortie d'Image J, que l'on ne peut pas directement nommés avec les noms des scan.pdf. 
+
+PS : pas besoin de l'arrange ID l'ensemble des données dans la table sont déjà ordonnée commes les sorties d'ImageJ.
+
+
+
+```{r misscount detection}
+
+
+LA_ID_misscount_exclude <- LA_exclude_corrected %>% 
+  group_by(ID) %>% 
+  summarise(n_LA = n()) %>% 
+  ungroup() %>% 
+  filter(n_LA !=5) 
+
+
+LA_ID_misscount_exclude %>% 
+  left_join(data3_count) %>% 
+  mutate(n_diff = n_data - n_LA) %>% 
+  select(ID, n_diff, n_LA) 
+  
+```
+
+
+
+Here we have 23 missdetection  with 4 leaves individuals which are noticed with n_diff = 0, NA in n_diff correspond to wrong ID which also have misscountleaves that we need to re-analize and then replace in LA_exclude_corrected to have a final datatable.
+
+
+### total corrected and misscount combination 
+As it has been done for Original and corrected we are going to correct index name
+
+```{r misscount data}
+LA_misscount_exclude <-  LA_misscount_exclude %>% 
+  select(ID, Area, Parcelle, Carre, Numero) %>% 
+   mutate(ID = gsub("p","P",ID)) 
+
+```
+
+then for each index repetition we give a leaf number from five to 1 but does not consider disorder or four leaves individuals yet.
+
+
+```{r misscount leafnumber}
+LA_misscount_exclude <- LA_misscount_exclude %>% mutate(Feuille = NA)
+LA_misscount_exclude$Feuille[1] = 5
+count = 5
+for (i in 2:length(LA_misscount_exclude$ID)) 
+{
+  if(LA_misscount_exclude$ID[i-1] == LA_misscount_exclude$ID[i]) {count = count-1}
+  else {count <- 5}
+  LA_misscount_exclude$Feuille[i]<-count
+}
+
+```
+ rename  index column as  it is named in paracou data table 
+
+```{r , rename LA misscount}
+LA_misscount_exclude <- LA_misscount_exclude %>% 
+  rename(n_parcelle = Parcelle , n_carre= Carre , n_arbre = Numero, n_feuille = Feuille) 
+
+```
+
+Now combination with full corrected data table : La_exclude_corrected
+
+```{r LA data final table creation}
+
+LA_data_exclude_final <- LA_misscount_exclude %>% 
+  select(ID, Area, n_parcelle, n_carre, n_arbre, n_feuille) %>% 
+   full_join(LA_exclude_corrected, 
+            by = c("ID", "n_parcelle", "n_carre","n_arbre", "n_feuille")) %>% 
+  rename(Area.m = Area) %>% # .m = misscount 
+  mutate(Area.d = ifelse(is.na(Area.m), Area.f, Area.m)) %>% # .d = data
+  select(ID, Area.d,n_parcelle, n_carre, n_arbre, n_feuille )
+```
+
+Verification that nothing has been forgot
+
+```{r repetition check final}
+LA_data_exclude_count <- LA_data_exclude_final %>% 
+  select(ID) %>% 
+  group_by(ID) %>% 
+  summarise(n_LA = n())
+
+data3_count %>% 
+  left_join(LA_data_exclude_count) %>% 
+  filter(n_data != n_LA) %>%
+  ungroup() %>% 
+  select(ID, n_data, n_LA) 
+
+```
+
+Only 2 individuals are spotted and it is normal because it individuals with non symphonia leaves discrovered after leaves scan. 
+
+## index verification 
+
+If everything is ok , there is no need to re-create a new correspondance index table because exclude holes data are calculated with exactly the same samples. 
+
+```{r index check}
+LA_exclude_index <- LA_data_exclude_final%>% 
+  select(n_parcelle, n_carre, n_arbre) %>% 
+  distinct()
+
+anti_join(LA_exclude_index,data4 )
+anti_join(data4,LA_exclude_index)
+
+```
+
+Now we know whichwrong index correspond to a right one, we are going to create a know table with corrected name and value because without it we cannot join full trait data table ( data3).
+SO  we comine La_data_exclude_final and LA_index_correspondance and then make a test with ifelse to create corrected coloumn
+
+```{r}
+LA_data_exclude_final2 <- LA_data_exclude_final %>% 
+  full_join(LA_index_correspondance, by = c("n_parcelle", "n_carre", "n_arbre")) %>% 
+  mutate( parcelle_f = ifelse(is.na(n_parcelle_c), n_parcelle,n_parcelle_c)) %>% 
+  mutate( carre_f = ifelse(is.na(n_carre_c), n_carre,n_carre_c)) %>% 
+  mutate( arbre_f = ifelse(is.na(n_arbre_c), n_arbre,n_arbre_c)) %>% 
+  select(Area.d, parcelle_f, carre_f, arbre_f, n_feuille) %>% 
+  rename(Area = Area.d, n_parcelle = parcelle_f, n_carre = carre_f, n_arbre = arbre_f)
+
+```
+
+
+### delete two non symphonia leaves
+
+"P13-2-662" , "P14-1-361" , respectively leaf number 1 and 5 that have to be deleted because there are not from a symphonia tree. 
+
+```{r non sympho leaf}
+LA_data_exclude_final2 <- LA_data_exclude_final2 %>% 
+  mutate( IndexFeuille = paste(n_parcelle, n_carre, n_arbre, n_feuille, sep="_")) %>% 
+  filter(!(IndexFeuille == "13_2_662_1")) %>% 
+  filter(!(IndexFeuille == "14_1_361_5")) %>% 
+  select(-IndexFeuille)
+
+#write.csv2(LA_data_exclude_final2 , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_data_exclude_final2.csv")
+
+
+```
+
+
+### disordered leaves number 
+
+disordered leaves and forleaves individual number table is construct by hand with LA_exclude_EllipsetoID table and here combine to final data table (LA_data_exclude_final2) with once again an ifesle test to replace the wrong order by the right one. 
+
+```{r}
+
+Leaf_Area_data_exclude <- LA_data_Leaf_ordered %>% 
+  mutate( feuille_f  = ifelse(is.na(disordered), n_feuille,disordered)) %>% 
+  select( n_parcelle, n_carre, n_arbre , feuille_f, Area) %>% 
+  rename( n_feuille = feuille_f)
+  
+```
+
+### combination with data3 
+
+```{r}
+data_full2 <- Leaf_Area_data_exclude %>%  
+  full_join(data_full, by = c( "n_parcelle", "n_carre", "n_arbre", "n_feuille"), suffix = c("_include", "_exclude"))
+```
 
 
 #deniste
