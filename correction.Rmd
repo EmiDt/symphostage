@@ -687,5 +687,6 @@ Full_traits_data <- Full_traits_data %>%
   
 #write.csv2(Full_traits_data , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_data.csv")
 
+
 ```
 

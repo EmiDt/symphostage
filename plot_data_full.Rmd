@@ -4,8 +4,6 @@ output:
   html_document:
     toc: yes
     toc_float: yes
-editor_options: 
-  chunk_output_type: inline
 ---
 
 ```{r doc settings,  package, message=FALSE, warning=FALSE}
@@ -34,10 +32,9 @@ And here for non numeric information like Dawkins and morphotype
 
 ```{r}
 Trait_mean_individuals_vect<- Traits_brut_data %>% 
-  select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter) %>% 
-  group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter) %>% 
+  select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Bois) %>% 
+  group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Bois) %>% 
     summarize()
-  
 ```
 
 
@@ -59,11 +56,14 @@ chlorophyll content transformation come from Coste et al 2010 but with parameter
 And now merging trait mean num and vect to have an complete mean trait value table 
 
 ```{r}
-Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals_vect, by = c("n_parcelle", "n_carre", "n_arbre") ) %>% 
-  filter(Dawkins != "") %>% 
+Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals_vect, by = c("n_parcelle", "n_carre", "n_arbre") ) %>%
   mutate(Dawkins = gsub("A","",Dawkins)) %>% 
   mutate(Dawkins = gsub("B","",Dawkins)) %>% 
-  mutate(Dawkins = gsub("C","",Dawkins))
+  mutate(Dawkins = gsub("C","",Dawkins)) %>% 
+  mutate(Dawkins = as.factor(as.integer(Dawkins))) %>% 
+  filter( SLA < 200) %>% 
+  filter(Dawkins != "") %>% 
+  mutate(Bois = as.factor(as.character(Bois)))
 
 
 ```
@@ -74,7 +74,7 @@ Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals
 ### SLA distribution 
 
 ```{r}
- Trait_mean_transform_final %>%  filter( SLA < 200) %>%  
+ Trait_mean_transform_final %>%    
 ggplot( aes(SLA))+
   geom_histogram(na.rm= T, binwidth = 6)
 ```
@@ -109,7 +109,7 @@ ggplot(Trait_mean_transform_final, aes(Chloro_content))+
 ### SLA ~ LMDC
 
 ```{r }
-Trait_mean_transform_final %>%  filter( SLA < 200) %>% 
+Trait_mean_transform_final %>%   
 ggplot(aes(SLA, LMDC, color= morphotype, size = diameter))+
   geom_jitter(na.rm=T)+
   labs(title = "", y="Leaf Dry Matter Content (LMDC) in g", x="Specific leaf area (SLA)")
@@ -186,10 +186,17 @@ ggplot(Trait_mean_transform_final,aes(LT_mean,Chloro_content))+
   geom_density2d(na.rm=T, col = "orange")
 ```
 
-## Trait and environment 
-## SLA ~ Dawkins 
+### Wood density ~ bark density
 ```{r}
-Trait_mean_transform_final %>%  filter( SLA <200) %>% 
+Trait_mean_transform_final %>%  
+ggplot( aes(Wood_infra_density, Bark_infra_density, color= morphotype, size = diameter))+
+  geom_jitter(na.rm=T)
+```
+
+## Trait and environment 
+### SLA ~ Dawkins 
+```{r}
+Trait_mean_transform_final %>%   
 ggplot( aes(x = SLA, y = diameter, color= Dawkins))+
   geom_point()
 ```
@@ -198,10 +205,18 @@ there is one individuals without Dawkins evaluation that have been removed at th
 We can see that there is a logical correlation between Dawkins and diameter so this subjective evaluation is quite good. Then smaller is the Dawkins score highter is the SLA value. It is not suprising because SLA reflect the leaf acquisition capacity and for individuals under the canopy light is less evalable so having hight SLA value allow to intercept more light and so maximise growth in adverse conditions (Long et al 2011).
 
 ```{r}
-Trait_mean_transform_final %>%  filter( SLA <200) %>% 
-ggplot( aes(x = Dawkins, y =SLA ))+
+Trait_mean_transform_final %>% 
+ggplot( aes(x = Dawkins, y =SLA , fill = Dawkins))+
   geom_boxplot()
 
 ```
 I don't know why there is two "2" categories ... 
 
+
+## Branch wood presence ~ diameter 
+
+```{r}
+ggplot(Trait_mean_transform_final, aes(x= Dawkins, y= Bois, size = diameter, color = morphotype))+
+  geom_jitter()
+```
+Repartition between diameter category seems to be homogene, so there is no link between branch sample and diameter. Broken branches does not come from weaker wood from older or younger individual with diameter used as a proxy for the "age".
