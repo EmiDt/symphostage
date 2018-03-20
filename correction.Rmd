@@ -687,7 +687,7 @@ Full_traits_data$LT_mean[which(Full_traits_data$ID == "13_2_662_1", Full_traits_
 Full_traits_data <- Full_traits_data %>% 
   select(n_parcelle, n_carre, n_arbre, n_feuille, morphotype, idArbre, Xutm, Yutm, Area_exclude, Area_include, Dawkins, Fresh_weight, Dry_Weight, diameter, SPAD_mean, LT_mean, Branch_diameter, Bark_thickness, Wood_infra_density, Bark_infra_density ) 
   
-write.csv2(Full_traits_data , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_data.csv")
+#write.csv2(Full_traits_data , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_data.csv")
 
 ```
 

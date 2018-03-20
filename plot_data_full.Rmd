@@ -1,0 +1,207 @@
+---
+title: plot data
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r doc settings,  package, message=FALSE, warning=FALSE}
+rm(list = ls())
+knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+```
+
+# data upload
+ 
+```{r}
+Traits_brut_data <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_data.csv",header = T, dec = ",", sep=";")
+```
+
+Transform mean individuals data because we are looking for inter-individual variation and not intra-individual only for numeric variables here 
+
+```{r}
+Trait_mean_individuals_num <- Traits_brut_data %>% 
+  group_by(n_parcelle, n_carre, n_arbre) %>% 
+  summarize_at(c("Area_exclude", "Area_include", "Fresh_weight", "Dry_Weight", "SPAD_mean", "LT_mean", "Branch_diameter", "Bark_thickness", "Bark_infra_density", "Wood_infra_density" ), mean, na.rm = T)
+```
+
+And here for non numeric information like Dawkins and morphotype
+
+```{r}
+Trait_mean_individuals_vect<- Traits_brut_data %>% 
+  select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter) %>% 
+  group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter) %>% 
+    summarize()
+  
+```
+
+
+
+# transformed trait 
+
+We are going to add transformed trait to our data table like Leaf Dry Mass Content (LMDC), Specific Leaf Area (SLA) and Chorophyll content from SPAD
+
+```{r}
+Trait_mean_transform <- Trait_mean_individuals_num %>% 
+  mutate(SLA = Area_exclude / Dry_Weight) %>% 
+  mutate(LMDC = Dry_Weight/ Fresh_weight) %>% 
+  mutate(Chloro_content = ((154.1* SPAD_mean)/(197.6-SPAD_mean))) %>% 
+  select(n_parcelle, n_carre, n_arbre, "LT_mean", "Branch_diameter", "Bark_thickness", "Bark_infra_density", "Wood_infra_density", LMDC, SLA, Chloro_content)
+```
+
+
+chlorophyll content transformation come from Coste et al 2010 but with parameters from papers and not re-fitted with our data .. 
+And now merging trait mean num and vect to have an complete mean trait value table 
+
+```{r}
+Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals_vect, by = c("n_parcelle", "n_carre", "n_arbre") ) %>% 
+  filter(Dawkins != "") %>% 
+  mutate(Dawkins = gsub("A","",Dawkins)) %>% 
+  mutate(Dawkins = gsub("B","",Dawkins)) %>% 
+  mutate(Dawkins = gsub("C","",Dawkins))
+
+
+```
+
+
+# plot 
+## simple trait 
+### SLA distribution 
+
+```{r}
+ Trait_mean_transform_final %>%  filter( SLA < 200) %>%  
+ggplot( aes(SLA))+
+  geom_histogram(na.rm= T, binwidth = 6)
+```
+
+There are two individuals that have aberrant SLA value 11-1-742 : 842 and 11-4-983 : 489 
+
+### LMDC distribution 
+
+```{r}
+ggplot(Trait_mean_transform_final, aes(LMDC))+
+  geom_histogram(binwidth = 0.008)
+```
+
+
+
+  
+### LT distribution 
+
+```{r}
+ggplot(Trait_mean_transform_final, aes(LT_mean))+
+  geom_histogram(na.rm = T, binwidth = 12)
+```
+
+### Chlorophylle content distribution 
+
+```{r}
+ggplot(Trait_mean_transform_final, aes(Chloro_content))+
+  geom_histogram(na.rm = T, binwidth = 2)
+```
+
+## double trait 
+### SLA ~ LMDC
+
+```{r }
+Trait_mean_transform_final %>%  filter( SLA < 200) %>% 
+ggplot(aes(SLA, LMDC, color= morphotype, size = diameter))+
+  geom_jitter(na.rm=T)+
+  labs(title = "", y="Leaf Dry Matter Content (LMDC) in g", x="Specific leaf area (SLA)")
+```
+
+
+```{r }
+ggplot(Trait_mean_transform_final,aes(SLA, LMDC))+
+  geom_density2d(na.rm=T, col = "orange")
+```
+
+### LMDC ~ LT 
+
+```{r}
+ggplot(Trait_mean_transform_final, aes(LT_mean, LMDC, color= morphotype, size = diameter))+
+  geom_jitter(na.rm=T)
+```
+
+```{r }
+ggplot(Trait_mean_transform_final,aes(LT_mean, LMDC))+
+  geom_density2d(na.rm=T, col = "orange")
+```
+
+
+### SLA ~ LT 
+
+```{r}
+Trait_mean_transform_final %>%  filter(SLA < 200) %>% 
+ggplot( aes(LT_mean, SLA, color= morphotype, size = diameter))+
+  geom_jitter(na.rm=T)
+```
+
+```{r }
+ggplot(Trait_mean_transform_final,aes(LT_mean ,SLA))+
+  geom_density2d(na.rm=T, col = "orange")
+```
+
+### Chlorophylle content ~ SLA 
+
+```{r}
+Trait_mean_transform_final %>%  filter(SLA < 200) %>% 
+ggplot( aes(SLA, Chloro_content, color= morphotype, size = diameter))+
+  geom_jitter(na.rm=T)
+```
+
+```{r }
+ggplot(Trait_mean_transform_final,aes(SLA,Chloro_content))+
+  geom_density2d(na.rm=T, col = "orange")
+```
+### Chlorophylle content ~ LMDC
+
+
+```{r}
+
+ggplot(Trait_mean_transform_final , aes(LMDC, Chloro_content, color= morphotype, size = diameter))+
+  geom_jitter(na.rm=T)
+```
+
+```{r }
+ggplot(Trait_mean_transform_final,aes(LMDC,Chloro_content))+
+  geom_density2d(na.rm=T, col = "orange")
+```
+### Chlorophylle content ~ LT
+
+
+```{r}
+
+ggplot(Trait_mean_transform_final  ,aes(LT_mean, Chloro_content, color= morphotype, size = diameter))+
+  geom_jitter(na.rm=T)
+```
+
+```{r }
+ggplot(Trait_mean_transform_final,aes(LT_mean,Chloro_content))+
+  geom_density2d(na.rm=T, col = "orange")
+```
+
+## Trait and environment 
+## SLA ~ Dawkins 
+```{r}
+Trait_mean_transform_final %>%  filter( SLA <200) %>% 
+ggplot( aes(x = SLA, y = diameter, color= Dawkins))+
+  geom_point()
+```
+It would be better with less Dawkins categories and there is one individuals without Dawkins evaluation 
+
+We can see that there is a logical correlation between Dawkins and diameter so this subjective evaluation is quite good. Then smaller is the Dawkins score highter is the SLA value. It is not suprising because SLA reflect the leaf acquisition capacity and for individuals under the canopy light is less evalable so having hight SLA value allow to intercept more light and so maximise growth in adverse conditions (Long et al 2011).
+
+```{r}
+Trait_mean_transform_final %>%  filter( SLA <200) %>% 
+ggplot( aes(x = Dawkins, y =SLA ))+
+  geom_boxplot()
+
+```
+I don't know why there is two "2" categories ... 
+
