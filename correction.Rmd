@@ -136,10 +136,8 @@ So index homogeneisation in both table :
 
 ```{r}
 LA_corrected_scans <- LA_corrected_scans %>% 
-  rename(ID = X.1) %>% 
   mutate(ID = paste0("P",ID)) %>% 
   mutate(ID = gsub("_","-",ID)) %>%
-  select(-X) %>% 
   rename(n_parcelle = Parcelle , n_carre= Carre , n_arbre = Numero)
 
 LA_include_holes <- LA_include_holes %>% 
@@ -602,7 +600,7 @@ data_full2 <- Leaf_Area_data_exclude %>%
 ```{r}
 
 densite2 <- densite %>% 
-  rename(n_parcelle = Parcelle , n_arbre = Num.ro, n_carre = Carr.) 
+  rename(n_parcelle = Parcelle , n_arbre = Numero, n_carre = Carre) 
   
 densite_ID_correspondance <- densite2 %>%  
   anti_join(data_full2, by = c("n_parcelle", "n_carre", "n_arbre")) %>% 
@@ -647,7 +645,7 @@ For every leaf of an individuals wood value are the same so if we group by for a
 ```{r}
 Full_traits_data <- Full_traits_data %>% 
   mutate(diameter = (circonf/ pi)) %>% 
-select(n_parcelle, n_carre, n_arbre, n_feuille, Area_include, Area_exclude, Dawkins, SPAD.1, SPAD.2, SPAD.3, LT.1, LT.2, LT.3 , Poids.frais, idArbre, Xutm, Yutm, diameter, espece, DryW, wood.diameter, bark.thickness, Idbois, IDEcorce) %>% 
+select(n_parcelle, n_carre, n_arbre, n_feuille, Area_include, Area_exclude, Dawkins, SPAD.1, SPAD.2, SPAD.3, LT.1, LT.2, LT.3 , Poids.frais, idArbre, Xutm, Yutm, diameter, espece, DryW, wood.diameter, bark.thickness, Idbois, IDEcorce, Bois) %>% 
   rename(Fresh_weight = Poids.frais , morphotype = espece , Dry_Weight = DryW , Branch_diameter = wood.diameter, Bark_thickness = bark.thickness, Wood_infra_density = Idbois , Bark_infra_density = IDEcorce) 
 
 
@@ -685,7 +683,7 @@ Full_traits_data$LT_mean[which(Full_traits_data$ID == "13_2_662_1", Full_traits_
 ```{r}
 
 Full_traits_data <- Full_traits_data %>% 
-  select(n_parcelle, n_carre, n_arbre, n_feuille, morphotype, idArbre, Xutm, Yutm, Area_exclude, Area_include, Dawkins, Fresh_weight, Dry_Weight, diameter, SPAD_mean, LT_mean, Branch_diameter, Bark_thickness, Wood_infra_density, Bark_infra_density ) 
+  select(n_parcelle, n_carre, n_arbre, n_feuille, morphotype, idArbre, Xutm, Yutm, Area_exclude, Area_include, Dawkins, Fresh_weight, Dry_Weight, diameter, SPAD_mean, LT_mean, Branch_diameter, Bark_thickness, Wood_infra_density, Bark_infra_density, Bois) 
   
 #write.csv2(Full_traits_data , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_data.csv")
 

@@ -193,7 +193,7 @@ Trait_mean_transform_final %>%  filter( SLA <200) %>%
 ggplot( aes(x = SLA, y = diameter, color= Dawkins))+
   geom_point()
 ```
-It would be better with less Dawkins categories and there is one individuals without Dawkins evaluation 
+there is one individuals without Dawkins evaluation that have been removed at the begining.
 
 We can see that there is a logical correlation between Dawkins and diameter so this subjective evaluation is quite good. Then smaller is the Dawkins score highter is the SLA value. It is not suprising because SLA reflect the leaf acquisition capacity and for individuals under the canopy light is less evalable so having hight SLA value allow to intercept more light and so maximise growth in adverse conditions (Long et al 2011).
 
