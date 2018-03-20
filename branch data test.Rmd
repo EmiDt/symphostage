@@ -7,7 +7,7 @@ output:
 editor_options: 
   chunk_output_type: inline
 ---
-# document settings 
+# document settings
 
 ```{r doc settings,  package, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
@@ -16,31 +16,24 @@ library(ggpubr)
 library(reshape2)
 library(dplyr)
 library(plotly)
-
 ```
-
-
-
-
 
 # document cleaning 
 
 ```{r doc cleaning}
 rm(list = ls()) ; invisible(gc());graphics.off()
+path <- getwd() # path to all data files currently in the same place
+# path <- file.path(getwd(), "data") # just a suggestion if you want to organise your data elsewhere like in a data subfolder
 ```
-
-
 
 # data 
 
 ```{r data}
-densite <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\densite sympho.csv",header = T, dec = ",", sep=";")
-Dawkins <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - Individuals2.csv", header = T, dec=",", sep=";")
-paracou <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Symphonia_Paracou.csv",header = T, dec = ",", sep=";")
-guyafor <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Symphonia_Guyafor.csv",header = T, dec = ",", sep=",")
+densite <- read.csv(file.path(path, "densite sympho.csv"),header = T, dec = ",", sep=";")
+Dawkins <- read.csv(file.path(path, "Measures - Individuals2.csv"), header = T, dec=",", sep=";")
+paracou <- read.csv(file.path(path, "Symphonia_Paracou.csv"),header = T, dec = ",", sep=";")
+guyafor <- read.csv(file.path(path, "Symphonia_Guyafor.csv"),header = T, dec = ",", sep=",")
 ```
-
-
 
 ## index creation  
 
@@ -48,9 +41,8 @@ Index (Parcelle_Carre_Numero) cration for densite table.
 
 ```{r densite data index }
 densite %<>% 
-  mutate(Index = paste(Parcelle, Carr., Num.ro, sep="_")) %>% 
+  mutate(Index = paste(Parcelle, Carré, Numéro, sep="_")) %>% 
   filter(Bois != "")
- 
 ```
 
 Index creation for dawkins table and NA removale.
@@ -61,7 +53,6 @@ Dawkins %<>%
   filter( Dawkins != "") %>% 
   filter(Bois == "1")
 ```
-
 
 Index creation for paracou  table.
 
@@ -78,8 +69,6 @@ guyafor %<>%
   mutate(Index = paste( n_parcelle, n_carre, n_arbre, sep="_")) %>% 
   mutate(diametre = (circonf/ pi))
 ```
-
-
 
 ### unic data table 
 
@@ -99,25 +88,16 @@ Final2 <- paracou %>%
 
 48 individual in common for campagne 2015 but only 24 for 2016
 
-
 ```{r}
 final3 <- Dawkins %>% 
   filter(Index %in% densite$Index) 
-  
 ```
 
 ```{r}
 success <- merge(densite,Final2, by = "Index")
 
 success2 <- merge(success, Dawkins, by = "Index")
-
-
-
 ```
-
-
-
-
 
 ```{r}
 ggplot(success2, aes(x = diametre, y=Idbois, color = Dawkins, size = IDEcorce ))+

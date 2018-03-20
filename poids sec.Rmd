@@ -14,44 +14,41 @@ library(ggpubr)
 library(reshape2)
 library(dplyr)
 library(plotly)
-
 ```
+
 ```{r biniou cleaning}
 #Clean the biniou
-
 rm(list = ls()) ; invisible(gc());graphics.off()
+path <- getwd() # path to all data files currently in the same place
+# path <- file.path(getwd(), "data") # just a suggestion if you want to organise your data elsewhere like in a data subfolder
 ```
 
-
 ```{r choose file, eval=FALSE}
-#choose.files()
+#choose.files() # Use choose file to define the path above
 ```
 
 ```{r data upload}
-DW <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\PoidsSecSympho.csv",header = T, dec = ",", sep=";") 
-Ecorce<- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - Individuals2.csv", header = T, dec=",", sep=";")
-LTh <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - Fresh.csv", header = T, dec=".", sep=";")
-LA <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Results Total Threshold- corrigé.csv", header = T, dec=".", sep=";")
-densite <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\densite sympho.csv",header = T, dec = ",", sep=";")
-SPAD <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Measures - SPAD.csv",header = T, dec = ".", sep=",")
-paracou <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Symphonia_Paracou.csv",header = T, dec = ",", sep=";")
+DW <- read.csv(file.path(path, "PoidsSecSympho.csv"),header = T, dec = ",", sep=";") 
+Ecorce<- read.csv(file.path(path, "Measures - Individuals2.csv"), header = T, dec=",", sep=";")
+LTh <- read.csv(file.path(path, "Measures - Fresh.csv"), header = T, dec=".", sep=";")
+LA <- read.csv(file.path(path, "Results Total Threshold- corrigé.csv"), header = T, dec=".", sep=";")
+densite <- read.csv(file.path(path, "densite sympho.csv"),header = T, dec = ",", sep=";")
+SPAD <- read.csv(file.path(path, "Measures - SPAD.csv"),header = T, dec = ".", sep=",")
+paracou <- read.csv(file.path(path, "Symphonia_Paracou.csv"),header = T, dec = ",", sep=";")
 ```
 
-
-
 # Leaf dry weight
+
 ```{r data dry weight}
 dw2 <- DW %>% 
   select(Parcelle, Carr., Num.ro, F1,F2,F3,F4,F5) %>% 
   mutate(MeanDW = (F1+F2+F3+F4+F5) / 5 )%>%
   mutate(Index= paste(Parcelle, Carr., Num.ro, sep="_"))
-
- # dw2 %>% filter(MeanDW %>% is.na == T)
- 
-  
+# dw2 %>% filter(MeanDW %>% is.na == T)
 ```
 
 # Bark categories
+
 ```{r data bark field}
 bark<-Ecorce %>% 
   select(Parcelle,Carre, Numero, ecorce) %>% 
@@ -73,18 +70,16 @@ bark<-Ecorce %>%
   #geom_boxplot()
 ```
 
-
 # LMDC & Leaf thickness
-```{r data Lth and LMDC, include=FALSE}
 
+```{r data Lth and LMDC, include=FALSE}
 LTh %>%  
-  select(Parcelle, Carr?., Num?.ro, Poids.frais, Feuille) %>% 
-  mutate(Index= paste(Parcelle,Carr?. , Num?.ro, Feuille, sep="_"))
+  select(Parcelle, Carré, Numéro, Poids.frais, Feuille) %>% 
+  mutate(Index= paste(Parcelle,Carré , Numéro, Feuille, sep="_"))
 dw2 %>% as.tbl
 
-LTh %<>% rename(Carre = Carr?.) %>%  rename(Numero = Num?.ro)
+LTh %<>% rename(Carre = Carré) %>%  rename(Numero = Numéro)
 LTh %<>% mutate(Index = paste(Parcelle,Carre,Numero, sep = "_"))
-                
                 
 final  <- dw2 %>%
   rename("1" = F1) %>% 
@@ -104,23 +99,18 @@ final  <- dw2 %>%
 
 final %<>% mutate( meanLth= (LT.1+LT.2+LT.3)/3)
 
-
 # final %<>% rename(Pfrais = Poids.frais)
 # final%<>%select(-X)
 #final <- final[which(!is.na(final$Psec)),]
  
-
 #class(LTh$Feuille)
-
-
 ```
 
 # Leaf area 
 ## table transformation 
 
 ```{r data LA, include=FALSE}
-
-#LA %<>% rename(Carre = Carré) %>% rename(Numero = Numéro)
+LA %<>% rename(Carre = Carré) %>% rename(Numero = Numéro)
 LA %<>% mutate(Index = paste(Parcelle,Carre,Numero, sep = "_"))
 LA %>% mutate(Feuille = NA) 
 LA$Feuille[1] = 5
@@ -133,11 +123,9 @@ for (i in 2:length(LA$Index))
     LA$Feuille[i]<-count
 }
 LA %>% as.tbl() 
-
 ```
 
-m?me nombre d'observation dans les deux dataframe 
-
+meme nombre d'observation dans les deux dataframe 
 
 ```{r reduction data LA and final, include=FALSE}
 LA %<>% 
@@ -158,30 +146,26 @@ LA %<>%
 
 # final %>% select(Index) %>% filter(!Index %in% LA$Index) %>% as.data.frame() to check for ddiffs
 ```
+
 ## total data table 
 
-
 ```{r merge LA and final, include=FALSE}
-
 total <- merge.data.frame(LA,final)
 ```
-
 
 ## SLA 
 
 ```{r column SLA, include=FALSE}
-
 total %<>%  
   mutate ( SLA = (Area/Psec))  
-
- 
 ```
 
 # densite 
+
 A revoir car uniquement 3 observation en commun ...
 ```{r densite bark and wood data, eval=FALSE, include=FALSE}
 densite %<>%  
-  mutate(Index = paste(Parcelle,Carr., Num.ro, sep="_"))  
+  mutate(Index = paste(Parcelle,Carré, Numéro, sep="_"))  
 
 paracou %<>%
   mutate(Index = paste(n_parcelle, n_carre, n_arbre, sep="_")) %>% 
@@ -201,16 +185,17 @@ paracou %<>%
   #as.data.frame()
 ```
 
-
 # SPAD
+
 ```{r spad data}
 SPAD %<>% 
-  rename(Carre = "Carr?.") %>% 
-  rename(Numero = "Num?.ro") %>% 
+  rename(Carre = "Carré") %>% 
+  rename(Numero = "Numéro") %>% 
   mutate(Index = paste (Parcelle, Carre, Numero, sep ="_")) %>% 
   mutate(ID = paste (Parcelle, Carre, Numero, Feuille, sep ="_")) %>% 
   mutate(MeanSpad = ((SPAD.1+SPAD.2+SPAD.3)/3))
 ```
+
 ## selection complete value 
 
 ```{r reduction data spad}
@@ -222,33 +207,28 @@ Chloro <- SPAD %>%
  final2 <-  merge(Chloro, total)
 ```
 
-
-
 # PLOT
 
 ## Mean individuals values
-```{r mean data in plaute, include=FALSE}
 
+```{r mean data in plaute, include=FALSE}
 plaute <- final2 %>% 
   select(Index,LMDC,meanLth, SLA,Psec, Poids.frais, MeanSpad) %>%
   group_by(Index) %>% 
   summarize_all(mean)%>% 
   filter(LMDC <60) %>% 
   mutate(LMDC = LMDC*100)
-  
  
   #merge(bark %>% 
   #select(ecorce,Index) %>%
   #filter(Index%in%final2$Index)) %>%
    #%>% 
   #as.tbl 
-
 ```
 
 ## Paracou individuals 
 
 ```{r paracou data, include=FALSE}
-
 paracou2 <- paracou %>%
   mutate(Index = paste(n_parcelle, n_carre, n_arbre, sep="_")) %>% 
   filter(campagne == "2015") %>%
@@ -256,11 +236,7 @@ paracou2 <- paracou %>%
   filter(Index %in% plaute$Index) 
   
 plaute <- merge(plaute, paracou2)
-  #
-  
 ```
-
-
 
 ## hypervolume : SLA-Lth-LMDC plot
 
@@ -268,11 +244,11 @@ plaute <- merge(plaute, paracou2)
 plaute%>% plot_ly(x = ~LMDC, y=~SLA,z=~meanLth, color=~espece, colors= c("grey","violet","orange"),sizes = 0.01)
 ```
 hypervolume with plotly but not really readable ... let's try with geom contour
-
+<!-- You can add a true caption to your figure with ```r, hypervolume, fig.cap="caption"``` -->
 
 ### LMDC~SLA
-```{r reg LMDC LA}
 
+```{r reg LMDC LA, eval=F}
 ggplot(plaute, aes(SLA, LMDC, color= espece, size = diameter))+
   geom_jitter(na.rm=T)+
   labs(title = "Regression LMDC in function of Specific Leaf Area with only 391 individuals", y="Leaf Dry Matter Content (LMDC) in g", x="Specific leaf area in g.cm?")
@@ -287,7 +263,6 @@ ggplot(plaute, aes(SLA, LMDC))+
 ```
 
 Avec le density2D on voit qu'il y a un seul point de forte densit? ce qu'il veut dire que pour ces deux variable il n'y a qu'un seul optimum 
-
 
 ### LMDC~Lth
 
@@ -309,7 +284,7 @@ ggplot(plaute, aes(meanLth, LMDC))+
 On voit ici aussi qu'il y a qu'un seul point a forte densit? il n'y a donc qu'un seul optimum pour cette combinaison de trait 
 ### Lth~SLA
 
-```{r}
+```{r, eval=F}
 ggplot(plaute, aes(SLA, meanLth, color= espece, size = diameter))+
   geom_jitter(na.rm=T)+
   
@@ -371,11 +346,10 @@ ggplot(plaute, aes(MeanSpad))+
 ```{r eval=FALSE, include=FALSE}
 dens <- densite %>% 
   select(Ecorce,IDEcorce) %>% 
-  filter(Ecorce != "") %>% 
+  filter(Ecorce != "")
 ggplot(dens, aes(IDEcorce, fill= espece, alpha= 0.5))+
   geom_density()
 ```
-
 
 ### Bois
 
@@ -387,8 +361,8 @@ ggplot(dens, aes(Idbois, fill= Ecorce, alpha= 0.5))+
   geom_density()
 ```
 
-
 ## circonferance 
+
 ### transformation in diameter 
 
 ```{r}
@@ -398,17 +372,13 @@ plaute %<>%
 
 ### plot 
 
-
-?
 ```{r circonf Lth}
 ggplot(plaute, aes(meanLth, diameter))+
   geom_point()
        
 ```
 
-
 Leaf thickness seems to have a relation with the focal tree diameter so it migth depend of the ontogenic stage of the tree
-
 
 ```{r}
 ggplot(plaute, aes(SLA, diameter))+
@@ -429,8 +399,6 @@ it seems that there is no relation between diameter and LMDC and also that some 
 ggplot(plaute, aes(MeanSpad, diameter))+
   geom_point(na.rm=T)
 ```
-
-
 
 # SLA ~dawkins 
 
@@ -462,11 +430,8 @@ ggplot(lum , aes(x = SLA, y = diameter, color= Dawkins))+
 ```
 
 ```{r}
-lum %<>%  filter(LMDC < 60) %>% 
-  
+lum %<>%  filter(LMDC < 60)
 ```
-
-
 
 ```{r}
 ggplot(lum, aes(SLA, LMDC, color= Dawkins, size = diameter))+
@@ -482,4 +447,3 @@ So there is no link between branch sample and diameter. Broken branches does not
 ggplot(lum, aes(x = Dawkins, y = espece, size = diameter))+
   geom_jitter()
 ```
-
