@@ -6,3 +6,5 @@
 *_cache
 *_files
 *_data
+*.csv
+data brut autre/
