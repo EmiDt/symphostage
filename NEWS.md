@@ -2,6 +2,7 @@
 * Merge conflicts between pull requests and new push from @EmiDt upstream:
     * ToDo.md > infoStage.md
     * rm branch data test and poids sec Rmds
+* Added data brut autre in data.sh
 
 # Sylvain 20 mars 2018
 * Opened a pull request
