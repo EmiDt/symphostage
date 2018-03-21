@@ -3,6 +3,14 @@
 
 # ToDo
 
+## General
+
+* environmental data : acquisition and exploring MNH, tree gap distance, neighbour basal area (25m radius), wetness index, (functionnal distance ?)
+* spatstat package (ask @EricMarcon)
+* linear model 
+* RDA 
+* RMA or SMA regression model to evaluate correlation between trait but without implying any physiological interdependance 
+
 ## Code
 
 * Fix issues on GitHub (you can reference it in the NEWS.md file when fixed and you can use the discussio interface if you have doubts, issues or questions).

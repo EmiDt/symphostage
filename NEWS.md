@@ -1,3 +1,8 @@
+# Sylvain 21 mars 2018
+* Merge conflicts between pull requests and new push from @EmiDt upstream:
+    * ToDo.md > infoStage.md
+    * rm branch data test and poids sec Rmds
+
 # Sylvain 20 mars 2018
 * Opened a pull request
 * Opened 3 issues on GitHub (knitable Rmd, `poids sec.Rmd` and accents)
