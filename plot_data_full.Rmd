@@ -12,6 +12,7 @@ knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
 library(dplyr)
 library(magrittr)
 library(ggplot2)
+library(ggpubr)
 ```
 
 # data upload
@@ -202,15 +203,27 @@ ggplot( aes(x = SLA, y = diameter, color= Dawkins))+
 ```
 there is one individuals without Dawkins evaluation that have been removed at the begining.
 
-We can see that there is a logical correlation between Dawkins and diameter so this subjective evaluation is quite good. Then smaller is the Dawkins score highter is the SLA value. It is not suprising because SLA reflect the leaf acquisition capacity and for individuals under the canopy light is less evalable so having hight SLA value allow to intercept more light and so maximise growth in adverse conditions (Long et al 2011).
+We can see that there is a logical correlation between Dawkins and diameter so this subjective evaluation is quite good (developp why "logical") . Then smaller is the Dawkins score highter is the SLA value. It is not suprising because SLA reflect the leaf acquisition capacity and for individuals under the canopy light is less evalable so having hight SLA value allow to intercept more light and so maximise growth in adverse conditions (Long et al 2011).
 
 ```{r}
 Trait_mean_transform_final %>% 
 ggplot( aes(x = Dawkins, y =SLA , fill = Dawkins))+
-  geom_boxplot()
+  geom_boxplot()+
+   stat_compare_means(method = "anova", 
+                     label.y = 250) +
+  stat_compare_means(method = "t.test", 
+                     label = "p.signif",
+                     ref.group = ".all.",
+                     label.y = 225)
+  
 
 ```
-I don't know why there is two "2" categories ... 
+ 
+```{r}
+Trait_mean_transform_final %>% 
+  aov(SLA ~ Dawkins, data=.) %>% 
+  TukeyHSD()
+```
 
 
 ## Branch wood presence ~ diameter 
@@ -220,3 +233,36 @@ ggplot(Trait_mean_transform_final, aes(x= Dawkins, y= Bois, size = diameter, col
   geom_jitter()
 ```
 Repartition between diameter category seems to be homogene, so there is no link between branch sample and diameter. Broken branches does not come from weaker wood from older or younger individual with diameter used as a proxy for the "age".
+
+
+
+
+#ACP 
+
+
+```{r}
+library(FactoMiner)
+
+
+ACP_data<- Trait_mean_transform_final %>% 
+  select(LMDC, SLA, Chloro_content, LT_mean, morphotype, diameter ) 
+
+
+res.pca <- PCA(test, quali.sup = 5)
+plot.PCA(res.pca, axes=c(1, 2), choix="var" , habillage= "morphotype") #choix="ind"
+
+```
+That a bit surprising because when SLA and LMDC are plotted together it seems to related but here they are not so much .. And this is the same for LT ... 
+
+So Chlorophyll content can be reduce to LMDC and LT by diameter ? 
+
+
+## diameter ~ LT
+```{r}
+Trait_mean_transform_final %>%   
+ggplot(aes(LT_mean,diameter, color= morphotype))+
+  geom_jitter(na.rm=T)
+```
+
+ 
+Within individuals, many studies have shown that outer-canopy ‘sun’ leaves tend to be thicker than those from more-shaded parts of the canopy. So thickness is related to light availability and as we previously saw diameter is positively related to Dawkins and therefore to individual light availibity. So this is not suprising that bigger is the diameter, thicker leaves are gonna be. 
