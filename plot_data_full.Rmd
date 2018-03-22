@@ -13,6 +13,8 @@ library(dplyr)
 library(magrittr)
 library(ggplot2)
 library(ggpubr)
+library("gridExtra")
+library("cowplot")
 ```
 
 # data upload
@@ -34,7 +36,7 @@ And here for non numeric information like Dawkins and morphotype
 ```{r}
 Trait_mean_individuals_vect<- Traits_brut_data %>% 
   select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Bois) %>% 
-  group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Bois) %>% 
+  group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Bois) %>%
     summarize()
 ```
 
@@ -64,8 +66,10 @@ Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals
   mutate(Dawkins = as.factor(as.integer(Dawkins))) %>% 
   filter( SLA < 200) %>% 
   filter(Dawkins != "") %>% 
-  mutate(Bois = as.factor(as.character(Bois)))
+  mutate(Bois = as.factor(as.character(Bois))) %>% 
+  mutate( basal_area = (pi* (diameter)^2)/4)
 
+#write.csv2(Trait_mean_transform_final , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_transform.csv")
 
 ```
 
@@ -77,7 +81,7 @@ Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals
 ```{r}
  Trait_mean_transform_final %>%    
 ggplot( aes(SLA))+
-  geom_histogram(na.rm= T, binwidth = 6)
+  geom_histogram(na.rm= T, binwidth = 4)
 ```
 
 There are two individuals that have aberrant SLA value 11-1-742 : 842 and 11-4-983 : 489 
@@ -118,8 +122,39 @@ ggplot(aes(SLA, LMDC, color= morphotype, size = diameter))+
 
 
 ```{r }
-ggplot(Trait_mean_transform_final,aes(SLA, LMDC))+
-  geom_density2d(na.rm=T, col = "orange")
+Trait_mean_transform_final %>% 
+ggplot(aes(SLA, LMDC))+
+  geom_density2d(na.rm=T )+
+  background_grid(major = "xy", minor = "none")
+```
+
+
+```{r }
+P_sp.1 <- Trait_mean_transform_final %>% 
+  filter(morphotype == "sp.1") %>% 
+ggplot(aes(SLA, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")
+
+P_globu <- Trait_mean_transform_final %>% 
+  filter(morphotype == "globulifera") %>% 
+ggplot(aes(SLA, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")
+
+P_indet <- Trait_mean_transform_final %>% 
+  filter(morphotype == "Indet.") %>% 
+ggplot(aes(SLA, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")
+
+P_sp.1_indent <- Trait_mean_transform_final %>% 
+  filter(morphotype != "globulifera") %>% 
+ggplot(aes(SLA, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")
+
+plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
 ```
 
 ### LMDC ~ LT 
@@ -147,6 +182,7 @@ ggplot( aes(LT_mean, SLA, color= morphotype, size = diameter))+
 ggplot(Trait_mean_transform_final,aes(LT_mean ,SLA))+
   geom_density2d(na.rm=T, col = "orange")
 ```
+
 
 ### Chlorophylle content ~ SLA 
 
@@ -198,7 +234,7 @@ ggplot( aes(Wood_infra_density, Bark_infra_density, color= morphotype, size = di
 ### SLA ~ Dawkins 
 ```{r}
 Trait_mean_transform_final %>%   
-ggplot( aes(x = SLA, y = diameter, color= Dawkins))+
+ggplot( aes(x = diameter, y = SLA, color= Dawkins))+
   geom_point()
 ```
 there is one individuals without Dawkins evaluation that have been removed at the begining.
@@ -241,28 +277,39 @@ Repartition between diameter category seems to be homogene, so there is no link 
 
 
 ```{r}
-library(FactoMiner)
+library(FactoMineR)
 
 
 ACP_data<- Trait_mean_transform_final %>% 
-  select(LMDC, SLA, Chloro_content, LT_mean, morphotype, diameter ) 
+  select(LMDC, SLA, Chloro_content, LT_mean, morphotype, diameter,  Wood_infra_density, Bark_thickness, Bark_infra_density) 
 
 
-res.pca <- PCA(test, quali.sup = 5)
-plot.PCA(res.pca, axes=c(1, 2), choix="var" , habillage= "morphotype") #choix="ind"
+res.pca <- PCA(ACP_data, quali.sup = 5)
+plot.PCA(res.pca, axes=c(1,2), choix="var" , habillage= "morphotype") #choix="ind"
 
 ```
 That a bit surprising because when SLA and LMDC are plotted together it seems to related but here they are not so much .. And this is the same for LT ... 
 
 So Chlorophyll content can be reduce to LMDC and LT by diameter ? 
 
+"Missing values are imputed by the mean of the variable: you should use the imputePCA function of the missMDA package"
+
 
 ## diameter ~ LT
 ```{r}
-Trait_mean_transform_final %>%   
+Trait_mean_transform_final %>%  
 ggplot(aes(LT_mean,diameter, color= morphotype))+
   geom_jitter(na.rm=T)
 ```
 
  
 Within individuals, many studies have shown that outer-canopy ‘sun’ leaves tend to be thicker than those from more-shaded parts of the canopy. So thickness is related to light availability and as we previously saw diameter is positively related to Dawkins and therefore to individual light availibity. So this is not suprising that bigger is the diameter, thicker leaves are gonna be. 
+
+## SLA ~diameter 
+
+```{r}
+Trait_mean_transform_final %>%   
+ggplot(aes(diameter, LT_mean, color= morphotype))+
+  geom_jitter(na.rm=T)
+```
+
