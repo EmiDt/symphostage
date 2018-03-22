@@ -134,25 +134,29 @@ P_sp.1 <- Trait_mean_transform_final %>%
   filter(morphotype == "sp.1") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
-  background_grid(major = "xy", minor = "none")
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1")
 
 P_globu <- Trait_mean_transform_final %>% 
   filter(morphotype == "globulifera") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
-  background_grid(major = "xy", minor = "none")
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "globulifera")
 
 P_indet <- Trait_mean_transform_final %>% 
   filter(morphotype == "Indet.") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
-  background_grid(major = "xy", minor = "none")
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "indet")
 
 P_sp.1_indent <- Trait_mean_transform_final %>% 
   filter(morphotype != "globulifera") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
-  background_grid(major = "xy", minor = "none")
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1 et indet")
 
 plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
 ```
@@ -168,7 +172,37 @@ ggplot(Trait_mean_transform_final, aes(LT_mean, LMDC, color= morphotype, size = 
 ggplot(Trait_mean_transform_final,aes(LT_mean, LMDC))+
   geom_density2d(na.rm=T, col = "orange")
 ```
+```{r }
+P_sp.1 <- Trait_mean_transform_final %>% 
+  filter(morphotype == "sp.1") %>% 
+ggplot(aes(LT_mean, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1")
 
+P_globu <- Trait_mean_transform_final %>% 
+  filter(morphotype == "globulifera") %>% 
+ggplot(aes(LT_mean, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "globulifera")
+
+P_indet <- Trait_mean_transform_final %>% 
+  filter(morphotype == "Indet.") %>% 
+ggplot(aes(LT_mean, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "Indet")
+
+P_sp.1_indent <- Trait_mean_transform_final %>% 
+  filter(morphotype != "globulifera") %>% 
+ggplot(aes(LT_mean, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1 et indet")
+
+plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
+```
 
 ### SLA ~ LT 
 
@@ -183,6 +217,37 @@ ggplot(Trait_mean_transform_final,aes(LT_mean ,SLA))+
   geom_density2d(na.rm=T, col = "orange")
 ```
 
+```{r }
+P_sp.1 <- Trait_mean_transform_final %>% 
+  filter(morphotype == "sp.1") %>% 
+ggplot(aes(SLA, LT_mean))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1")
+
+P_globu <- Trait_mean_transform_final %>% 
+  filter(morphotype == "globulifera") %>% 
+ggplot(aes(SLA, LT_mean))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "globulifera")
+
+P_indet <- Trait_mean_transform_final %>% 
+  filter(morphotype == "Indet.") %>% 
+ggplot(aes(SLA, LT_mean))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "Indet")
+
+P_sp.1_indent <- Trait_mean_transform_final %>% 
+  filter(morphotype != "globulifera") %>% 
+ggplot(aes(SLA, LT_mean))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1 et indet")
+
+plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
+```
 
 ### Chlorophylle content ~ SLA 
 
@@ -196,11 +261,45 @@ ggplot( aes(SLA, Chloro_content, color= morphotype, size = diameter))+
 ggplot(Trait_mean_transform_final,aes(SLA,Chloro_content))+
   geom_density2d(na.rm=T, col = "orange")
 ```
+
+
+
+```{r }
+P_sp.1 <- Trait_mean_transform_final %>% 
+  filter(morphotype == "sp.1") %>% 
+ggplot(aes(SLA, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1")
+
+P_globu <- Trait_mean_transform_final %>% 
+  filter(morphotype == "globulifera") %>% 
+ggplot(aes(SLA, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "globulifera")
+
+P_indet <- Trait_mean_transform_final %>% 
+  filter(morphotype == "Indet.") %>% 
+ggplot(aes(SLA, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "Indet")
+
+P_sp.1_indent <- Trait_mean_transform_final %>% 
+  filter(morphotype != "globulifera") %>% 
+ggplot(aes(SLA, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1 et indet")
+
+plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
+```
+
 ### Chlorophylle content ~ LMDC
 
 
 ```{r}
-
 ggplot(Trait_mean_transform_final , aes(LMDC, Chloro_content, color= morphotype, size = diameter))+
   geom_jitter(na.rm=T)
 ```
@@ -209,6 +308,40 @@ ggplot(Trait_mean_transform_final , aes(LMDC, Chloro_content, color= morphotype,
 ggplot(Trait_mean_transform_final,aes(LMDC,Chloro_content))+
   geom_density2d(na.rm=T, col = "orange")
 ```
+
+```{r }
+P_sp.1 <- Trait_mean_transform_final %>% 
+  filter(morphotype == "sp.1") %>% 
+ggplot(aes(LMDC, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1")
+
+P_globu <- Trait_mean_transform_final %>% 
+  filter(morphotype == "globulifera") %>% 
+ggplot(aes(LMDC, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "globulifera")
+
+P_indet <- Trait_mean_transform_final %>% 
+  filter(morphotype == "Indet.") %>% 
+ggplot(aes(LMDC, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "Indet")
+
+P_sp.1_indent <- Trait_mean_transform_final %>% 
+  filter(morphotype != "globulifera") %>% 
+ggplot(aes(LMDC, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1 et indet")
+
+plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
+```
+
+
 ### Chlorophylle content ~ LT
 
 
@@ -221,6 +354,38 @@ ggplot(Trait_mean_transform_final  ,aes(LT_mean, Chloro_content, color= morphoty
 ```{r }
 ggplot(Trait_mean_transform_final,aes(LT_mean,Chloro_content))+
   geom_density2d(na.rm=T, col = "orange")
+```
+
+```{r }
+P_sp.1 <- Trait_mean_transform_final %>% 
+  filter(morphotype == "sp.1") %>% 
+ggplot(aes(LT_mean, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1")
+
+P_globu <- Trait_mean_transform_final %>% 
+  filter(morphotype == "globulifera") %>% 
+ggplot(aes(LT_mean, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "globulifera")
+
+P_indet <- Trait_mean_transform_final %>% 
+  filter(morphotype == "Indet.") %>% 
+ggplot(aes(LT_mean, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "Indet")
+
+P_sp.1_indent <- Trait_mean_transform_final %>% 
+  filter(morphotype != "globulifera") %>% 
+ggplot(aes(LT_mean, Chloro_content))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1 et indet")
+
+plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
 ```
 
 ### Wood density ~ bark density
@@ -259,6 +424,39 @@ ggplot( aes(x = Dawkins, y =SLA , fill = Dawkins))+
 Trait_mean_transform_final %>% 
   aov(SLA ~ Dawkins, data=.) %>% 
   TukeyHSD()
+```
+
+```{r }
+P_sp.1 <- Trait_mean_transform_final %>% 
+  filter(morphotype == "sp.1") %>% 
+ggplot(aes(SLA, diameter))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1")
+
+P_globu <- Trait_mean_transform_final %>% 
+  filter(morphotype == "globulifera") %>% 
+ggplot(aes(SLA, diameter))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "globulifera")
+
+P_indet <- Trait_mean_transform_final %>% 
+  filter(morphotype == "Indet.") %>% 
+ggplot(aes(SLA, diameter))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "Indet")
+
+P_sp.1_indent <- Trait_mean_transform_final %>% 
+  filter(morphotype != "globulifera") %>% 
+ggplot(aes(SLA, diameter))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "sp.1 et indet")
+
+plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
+
 ```
 
 
