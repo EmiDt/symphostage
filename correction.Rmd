@@ -8,8 +8,8 @@ knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
 library(dplyr)
 library(reshape2)
 library(magrittr)
-path <- getwd() # path to all data files currently in the same place
-# path <- file.path(getwd(), "data") # just a suggestion if you want to organise your data elsewhere like in a data subfolder
+path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+# path <- "./data/" # To be used on sylvain local machine
 ```
 
 # data upload 
