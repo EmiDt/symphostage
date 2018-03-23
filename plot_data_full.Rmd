@@ -20,7 +20,9 @@ library("cowplot")
 # data upload
  
 ```{r}
-Traits_brut_data <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_data.csv",header = T, dec = ",", sep=";")
+path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+# path <- "./data/" # To be used on sylvain local machine
+Traits_brut_data <- read.csv(file.path(path, "Full_traits_data.csv"),header = T, dec = ",", sep=";")
 ```
 
 Transform mean individuals data because we are looking for inter-individual variation and not intra-individual only for numeric variables here 

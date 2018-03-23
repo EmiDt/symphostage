@@ -10,6 +10,7 @@
 * linear model 
 * RDA 
 * RMA or SMA regression model to evaluate correlation between trait but without implying any physiological interdependance 
+* update final table on drive
 
 ## Code
 
@@ -24,6 +25,7 @@
 ## March
 
 * 22 - Skype meeting
+* 30 - Skype meeting if needed
 
 ## April
 
