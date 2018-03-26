@@ -15,6 +15,7 @@ library(ggplot2)
 library(ggpubr)
 library("gridExtra")
 library("cowplot")
+library(FactoMineR)
 ```
 
 # data upload
@@ -35,7 +36,7 @@ And here for non numeric information like Dawkins and morphotype
 
 ```{r}
 Trait_mean_individuals_vect<- Traits_brut_data %>% 
-  select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Bois) %>% 
+  select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Bois, Xutm, Yutm) %>% 
   group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Bois) %>%
     summarize()
 ```
@@ -73,6 +74,23 @@ Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals
 
 ```
 
+# environment data
+```{r}
+environment <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment\\Paracou\\environmenttest.csv",header = T, dec = ",", sep=";") %>% 
+  select(-morphotype, -X, -circonf, -espece, -n_essence, -Famille, -Genre, -code_vivant, -code_mesure, -idTaxon, -campagne, -X.1)
+
+
+environment_trait <- Trait_mean_transform_final %>%  inner_join(environment, by = c("n_parcelle", "n_carre", "n_arbre"))
+```
+
+merging environmental data with transformed trait data, only 398 are in commun so one individual is missing lets found which one 
+
+```{r}
+Trait_mean_transform_final %>% anti_join(environment_trait , by= c("n_parcelle", "n_carre", "n_arbre"))
+
+```
+
+So 14-2-459 is present in environment data base 
 
 # plot 
 ## simple trait 
@@ -473,11 +491,7 @@ Repartition between diameter category seems to be homogene, so there is no link 
 
 #ACP 
 
-
 ```{r}
-library(FactoMineR)
-
-
 ACP_data<- Trait_mean_transform_final %>% 
   select(LMDC, SLA, Chloro_content, LT_mean, morphotype, diameter,  Wood_infra_density, Bark_thickness, Bark_infra_density) 
 
@@ -486,6 +500,7 @@ res.pca <- PCA(ACP_data, quali.sup = 5)
 plot.PCA(res.pca, axes=c(1,2), choix="var" , habillage= "morphotype") #choix="ind"
 
 ```
+
 That a bit surprising because when SLA and LMDC are plotted together it seems to related but here they are not so much .. And this is the same for LT ... 
 
 So Chlorophyll content can be reduce to LMDC and LT by diameter ? 
@@ -509,5 +524,29 @@ Within individuals, many studies have shown that outer-canopy ‘sun’ leaves t
 Trait_mean_transform_final %>%   
 ggplot(aes(diameter, LT_mean, color= morphotype))+
   geom_jitter(na.rm=T)
+```
+## ACP environment 
+
+```{r}
+ACP_data<- environment_trait %>% 
+  select(d_log_gap, d_creek, waterlog, wetness, dem, slope,curvature,aspect, TRI, wtd, hydromorphy,drainages) 
+
+
+res.pca <- PCA(ACP_data, quali.sup = c(10,11,12))
+plot.PCA(res.pca, axes=c(1,2), choix="var" , habillage= "wtd")
+```
+
+## ACP trait and environment
+ACP without : aspect, d_logging_gap , d_creek 
+```{r}
+
+ACP_data<- environment_trait %>% 
+  select(waterlog, wetness, dem, slope, wtd, hydromorphy,drainages, LMDC, SLA, Chloro_content, LT_mean, morphotype, diameter, TRI) 
+
+
+res.pca <- PCA(ACP_data, quali.sup = c(6,5,7,12))
+plot.PCA(res.pca, axes=c(1,2), choix="var" , habillage= "morphotype")
+```
+
 ```
 
