@@ -16,6 +16,7 @@ library(ggpubr)
 library("gridExtra")
 library("cowplot")
 library(FactoMineR)
+library(factoextra)
 ```
 
 # data upload
@@ -34,10 +35,14 @@ Trait_mean_individuals_num <- Traits_brut_data %>%
 
 And here for non numeric information like Dawkins and morphotype
 
-```{r}
+```{r }
+Traits_brut_data <- Traits_brut_data %>% 
+  rename(wood_presence = Bois) %>% 
+  mutate(wood_presence = as.factor(wood_presence))
+
 Trait_mean_individuals_vect<- Traits_brut_data %>% 
-  select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Bois, Xutm, Yutm) %>% 
-  group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Bois) %>%
+  select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Xutm, Yutm, wood_presence) %>% 
+  group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, wood_presence) %>%
     summarize()
 ```
 
@@ -59,7 +64,7 @@ Trait_mean_transform <- Trait_mean_individuals_num %>%
 chlorophyll content transformation come from Coste et al 2010 but with parameters from papers and not re-fitted with our data .. 
 And now merging trait mean num and vect to have an complete mean trait value table 
 
-```{r}
+```{r }
 Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals_vect, by = c("n_parcelle", "n_carre", "n_arbre") ) %>%
   mutate(Dawkins = gsub("A","",Dawkins)) %>% 
   mutate(Dawkins = gsub("B","",Dawkins)) %>% 
@@ -67,7 +72,7 @@ Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals
   mutate(Dawkins = as.factor(as.integer(Dawkins))) %>% 
   filter( SLA < 200) %>% 
   filter(Dawkins != "") %>% 
-  mutate(Bois = as.factor(as.character(Bois))) %>% 
+  mutate(wood_presence = as.factor(as.character(wood_presence))) %>% 
   mutate( basal_area = (pi* (diameter)^2)/4)
 
 #write.csv2(Trait_mean_transform_final , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_transform.csv")
@@ -481,7 +486,7 @@ plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"
 ## Branch wood presence ~ diameter 
 
 ```{r}
-ggplot(Trait_mean_transform_final, aes(x= Dawkins, y= Bois, size = diameter, color = morphotype))+
+ggplot(Trait_mean_transform_final, aes(x= Dawkins, y= wood_presence, size = diameter, color = morphotype))+
   geom_jitter()
 ```
 Repartition between diameter category seems to be homogene, so there is no link between branch sample and diameter. Broken branches does not come from weaker wood from older or younger individual with diameter used as a proxy for the "age".
@@ -493,11 +498,17 @@ Repartition between diameter category seems to be homogene, so there is no link 
 
 ```{r}
 ACP_data<- Trait_mean_transform_final %>% 
-  select(LMDC, SLA, Chloro_content, LT_mean, morphotype, diameter,  Wood_infra_density, Bark_thickness, Bark_infra_density) 
+  select(LMDC, SLA, Chloro_content, LT_mean, morphotype, diameter) 
 
 
-res.pca <- PCA(ACP_data, quali.sup = 5)
-plot.PCA(res.pca, axes=c(1,2), choix="var" , habillage= "morphotype") #choix="ind"
+res.pca <- PCA(ACP_data, quali.sup = 5, graph= F)
+
+ ind <- fviz_pca_ind(res.pca, label="none", habillage=ACP_data$morphotype,
+             addEllipses=TRUE, ellipse.level=0.95)
+var <-  fviz_pca_var(res.pca, alpha.var="contrib")
+ both <- fviz_pca_biplot(res.pca, label ="var")
+ 
+ plot_grid(ind, var, both  , labels=c("A", "B","C"), ncol = 2, nrow = 2)
 
 ```
 
@@ -505,7 +516,7 @@ That a bit surprising because when SLA and LMDC are plotted together it seems to
 
 So Chlorophyll content can be reduce to LMDC and LT by diameter ? 
 
-"Missing values are imputed by the mean of the variable: you should use the imputePCA function of the missMDA package"
+"Missing values are imputed by the mean of the variable: you should use the imputePCA function of the missMDA package" so wood and bark data are not input here 
 
 
 ## diameter ~ LT
@@ -528,24 +539,41 @@ ggplot(aes(diameter, LT_mean, color= morphotype))+
 ## ACP environment 
 
 ```{r}
-ACP_data<- environment_trait %>% 
-  select(d_log_gap, d_creek, waterlog, wetness, dem, slope,curvature,aspect, TRI, wtd, hydromorphy,drainages) 
+ACP_data2<- environment_trait %>% 
+  mutate(hydromorphy = as.factor(hydromorphy)) %>% 
+  filter(!is.na(hydromorphy)) %>% 
+  select(d_log_gap, d_creek, waterlog, wetness, dem, slope,curvature,aspect, TRI, morphotype) 
+  
 
 
-res.pca <- PCA(ACP_data, quali.sup = c(10,11,12))
-plot.PCA(res.pca, axes=c(1,2), choix="var" , habillage= "wtd")
+res.pca2 <- PCA(ACP_data2, quali.sup = 10, graph = F)
+
+ind2 <- fviz_pca_ind(res.pca2, label="none", habillage = ACP_data2$morphotype,
+             addEllipses=TRUE, ellipse.level=0.95)
+ 
+var2 <-  fviz_pca_var(res.pca2, alpha.var="contrib")
+
+both2 <- fviz_pca_biplot(res.pca2, label ="var")
+
+plot_grid(ind2, var2, both2  , labels=c("A", "B","C"), ncol = 2, nrow = 2)
 ```
 
 ## ACP trait and environment
 ACP without : aspect, d_logging_gap , d_creek 
 ```{r}
 
-ACP_data<- environment_trait %>% 
-  select(waterlog, wetness, dem, slope, wtd, hydromorphy,drainages, LMDC, SLA, Chloro_content, LT_mean, morphotype, diameter, TRI) 
+ACP_data3<- environment_trait %>% 
+  select(waterlog, wetness, dem, slope, TRI,  diameter, LMDC, SLA, Chloro_content, LT_mean, morphotype) 
 
 
-res.pca <- PCA(ACP_data, quali.sup = c(6,5,7,12))
-plot.PCA(res.pca, axes=c(1,2), choix="var" , habillage= "morphotype")
+res.pca3 <- PCA(ACP_data3, quali.sup = 11, graph= F)
+
+ ind3 <- fviz_pca_ind(res.pca3, label="none", habillage=ACP_data3$morphotype,
+             addEllipses=TRUE, ellipse.level=0.95)
+var3 <-  fviz_pca_var(res.pca3, alpha.var="contrib")
+ both3 <- fviz_pca_biplot(res.pca3, label ="var")
+ 
+ plot_grid(ind3, var3, both3  , labels=c("A", "B","C"), ncol = 2, nrow = 2)
 ```
 
 ```
