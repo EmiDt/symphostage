@@ -22,7 +22,9 @@ library(factoextra)
 # data upload
  
 ```{r}
-Traits_brut_data <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_data.csv",header = T, dec = ",", sep=";")
+path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+# path <- "./data/" # To be used on sylvain local machine
+Traits_brut_data <- read.csv(file.path(path, "Full_traits_data.csv"),header = T, dec = ",", sep=";")
 ```
 
 Transform mean individuals data because we are looking for inter-individual variation and not intra-individual only for numeric variables here 
@@ -81,7 +83,7 @@ Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals
 # environment data
 ## environment fromparacou SIG 
 ```{r}
-environment <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment\\Paracou\\environmenttest.csv",header = T, dec = ",", sep=";") %>% 
+environment <-read.csv(file.path(path, "environment\\Paracou\\environmenttest.csv"),header = T, dec = ",", sep=";")%>% 
   select(-morphotype, -X, -circonf, -espece, -n_essence, -Famille, -Genre, -code_vivant, -code_mesure, -idTaxon, -campagne, -X.1)
 
 
@@ -100,7 +102,7 @@ So 14-2-459 is present in environment data base
 ## environment from neighbour basal area 
 
 ```{r}
-G_neighbour <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_Gneighbour.csv",header = T, dec = ".", sep=",")
+G_neighbour <- read.csv(file.path(path, "Full_Gneighbour.csv"),header = T, dec = ",", sep=";")
 
 G_neighbour <- G_neighbour %>% 
   select(PointWeight, nNeighbors, GNeighbors, n_parcelle, n_carre, n_arbre )
