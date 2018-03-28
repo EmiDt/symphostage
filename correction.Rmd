@@ -8,7 +8,8 @@ knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
 library(dplyr)
 library(reshape2)
 library(magrittr)
-path <- getwd() # path to all data files currently in the same place
+path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\" # path to all data files currently in the same place
+setwd(path)
 # path <- file.path(getwd(), "data") # just a suggestion if you want to organise your data elsewhere like in a data subfolder
 ```
 
@@ -97,7 +98,7 @@ data3 <- data2 %>% left_join(DW, by = cols)
 data3 %>% 
   filter(is.na(DryW)) %>% 
   select(n_parcelle, n_carre, n_arbre, n_feuille,
-         SPAD.1, LT.1, Poids.frais, DryW)
+         SPAD.1, LT.1, Poids.frais, DryW, ecorce)
 
 #DW[grep("symphonia", DW$F6),]
 ```
@@ -616,8 +617,8 @@ For every leaf of an individuals wood value are the same so if we group by for a
 ```{r}
 Full_traits_data <- Full_traits_data %>% 
   mutate(diameter = (circonf/ pi)) %>% 
-select(n_parcelle, n_carre, n_arbre, n_feuille, Area_include, Area_exclude, Dawkins, SPAD.1, SPAD.2, SPAD.3, LT.1, LT.2, LT.3 , Poids.frais, idArbre, Xutm, Yutm, diameter, espece, DryW, wood.diameter, bark.thickness, Idbois, IDEcorce, Bois) %>% 
-  rename(Fresh_weight = Poids.frais , morphotype = espece , Dry_Weight = DryW , Branch_diameter = wood.diameter, Bark_thickness = bark.thickness, Wood_infra_density = Idbois , Bark_infra_density = IDEcorce) 
+select(n_parcelle, n_carre, n_arbre, n_feuille, Area_include, Area_exclude, Dawkins, SPAD.1, SPAD.2, SPAD.3, LT.1, LT.2, LT.3 , Poids.frais, idArbre, Xutm, Yutm, diameter, espece, DryW, wood.diameter, bark.thickness, Idbois, IDEcorce, Bois,ecorce) %>% 
+  rename(Fresh_weight = Poids.frais , morphotype = espece , Dry_Weight = DryW , Branch_diameter = wood.diameter, Bark_thickness = bark.thickness, Wood_infra_density = Idbois , Bark_infra_density = IDEcorce, morphotype_field = ecorce) 
 
 
 
@@ -653,7 +654,8 @@ Full_traits_data$LT_mean[which(Full_traits_data$ID == "13_2_662_1", Full_traits_
 
 ```{r}
 Full_traits_data <- Full_traits_data %>% 
-  select(n_parcelle, n_carre, n_arbre, n_feuille, morphotype, idArbre, Xutm, Yutm, Area_exclude, Area_include, Dawkins, Fresh_weight, Dry_Weight, diameter, SPAD_mean, LT_mean, Branch_diameter, Bark_thickness, Wood_infra_density, Bark_infra_density, Bois) 
+  select(n_parcelle, n_carre, n_arbre, n_feuille, morphotype, idArbre, Xutm, Yutm, Area_exclude, Area_include, Dawkins, Fresh_weight, Dry_Weight, diameter, SPAD_mean, LT_mean, Branch_diameter, Bark_thickness, Wood_infra_density, Bark_infra_density, Bois, morphotype_field) 
+
   
 #write.csv2(Full_traits_data ,file.path(path, "Full_traits_data.csv"))
 
