@@ -1,3 +1,8 @@
+# Sylvain 23 mars 2018
+* `path` correction in correction and plot data full Rmarkdowns
+* updated data.sh script
+* updated infoStage
+
 # Sylvain 21 mars 2018
 * Merge conflicts between pull requests and new push from @EmiDt upstream:
     * ToDo.md > infoStage.md
