@@ -41,8 +41,8 @@ Traits_brut_data <- Traits_brut_data %>%
   mutate(wood_presence = as.factor(wood_presence))
 
 Trait_mean_individuals_vect<- Traits_brut_data %>% 
-  select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Xutm, Yutm, wood_presence) %>% 
-  group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, wood_presence) %>%
+  select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Xutm, Yutm, wood_presence, morphotype_field) %>% 
+  group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, wood_presence, morphotype_field) %>%
     summarize()
 ```
 
@@ -72,7 +72,6 @@ Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals
   mutate(Dawkins = as.factor(as.integer(Dawkins))) %>% 
   filter( SLA < 200) %>% 
   filter(Dawkins != "") %>% 
-  mutate(wood_presence = as.factor(as.character(wood_presence))) %>% 
   mutate( basal_area = (pi* (diameter)^2)/4)
 
 #write.csv2(Trait_mean_transform_final , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_transform.csv")
@@ -180,6 +179,49 @@ ggplot(aes(SLA, LMDC))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "sp.1 et indet")
+
+plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
+```
+
+
+
+
+```{r }
+Trait_mean_transform_final %>% 
+ggplot(aes(SLA, LMDC))+
+  geom_density2d(na.rm=T )+
+  background_grid(major = "xy", minor = "none")
+```
+
+
+```{r }
+P_sp.1 <- Trait_mean_transform_final %>% 
+  filter(morphotype_field == "S") %>% 
+ggplot(aes(SLA, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "S")
+
+P_globu <- Trait_mean_transform_final %>% 
+  filter(morphotype_field == "G") %>% 
+ggplot(aes(SLA, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "G")
+
+P_indet <- Trait_mean_transform_final %>% 
+  filter(morphotype_field == "SG") %>% 
+ggplot(aes(SLA, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "SG")
+
+P_sp.1_indent <- Trait_mean_transform_final %>% 
+  filter(morphotype_field != "G") %>% 
+ggplot(aes(SLA, LMDC))+
+  geom_density2d()+
+  background_grid(major = "xy", minor = "none")+
+   labs(title = "S et SG")
 
 plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
 ```
@@ -542,13 +584,13 @@ ggplot(aes(diameter, LT_mean, color= morphotype))+
 ACP_data2<- environment_trait %>% 
   mutate(hydromorphy = as.factor(hydromorphy)) %>% 
   filter(!is.na(hydromorphy)) %>% 
-  select(d_log_gap, d_creek, waterlog, wetness, dem, slope,curvature,aspect, TRI, morphotype) 
+  select(d_log_gap, d_creek, waterlog, wetness, dem, slope,curvature,aspect, TRI, morphotype_field) 
   
 
 
 res.pca2 <- PCA(ACP_data2, quali.sup = 10, graph = F)
 
-ind2 <- fviz_pca_ind(res.pca2, label="none", habillage = ACP_data2$morphotype,
+ind2 <- fviz_pca_ind(res.pca2, label="none", habillage = ACP_data2$morphotype_field,
              addEllipses=TRUE, ellipse.level=0.95)
  
 var2 <-  fviz_pca_var(res.pca2, alpha.var="contrib")
@@ -575,6 +617,19 @@ var3 <-  fviz_pca_var(res.pca3, alpha.var="contrib")
  
  plot_grid(ind3, var3, both3  , labels=c("A", "B","C"), ncol = 2, nrow = 2)
 ```
+## test ACP avec vegan
+
+ACP whith scale = T, to work with covariance matrix because data have different unite (so data are not centered) then using scaling = 1 and scaling = 2 to maintain euclidian distance or correlation between descriptor (verified whichone is use by factomineR)
+```{r}
+# library(vegan)
+# 
+# ACP_data3 %<>% 
+#   select(-morphotype, -waterlog) 
+# 
+# ACP=rda(ACP_data3,scale=TRUE)
+# truc1 <- biplot(ACP,scaling=1)
+# truc2 <- biplot(ACP,scaling=2)
+#  plot_grid(truc1, truc2 , labels=c("A", "B"), ncol = 2, nrow = 1)
 
 ```
 
