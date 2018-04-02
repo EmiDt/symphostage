@@ -46,6 +46,8 @@ Trait_mean_individuals_vect<- Traits_brut_data %>%
   dplyr::select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Xutm, Yutm, wood_presence, morphotype_field) %>% 
   group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, wood_presence, morphotype_field) %>%
     summarize()
+
+#write.csv(Trait_mean_individuals_vect, file = "C:\\Users\\emduc\\Desktop\\coord_sympho.csv" )
 ```
 
 
@@ -102,13 +104,15 @@ So 14-2-459 is present in environment data base
 ## environment from neighbour basal area 
 
 ```{r}
-G_neighbour <- read.csv(file.path(path, "Full_Gneighbour.csv"),header = T, dec = ",", sep=";")
+G_neighbour <- read.csv(file.path(path, "Full_Gneighbour.csv"),header = T, dec = ".", sep=",")
 
 G_neighbour <- G_neighbour %>% 
   select(PointWeight, nNeighbors, GNeighbors, n_parcelle, n_carre, n_arbre )
 
 environment_trait2 <- G_neighbour %>% 
   inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
+
+#write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\environment_trait2.csv" )
 
 Trait_mean_transform%>%  anti_join(environment_trait2, by = c("n_parcelle", "n_carre", "n_arbre"))
 
@@ -120,7 +124,21 @@ So here 4 individuals are missing from the full corrected  individual count data
 ```{r}
 environment_trait2 <- environment_trait2 %>% 
   mutate(Competition = ((GNeighbors/ nNeighbors)/PointWeight))
+
+#write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\environment_trait2.csv" )
 ```
+
+### dcm 
+
+```{r}
+dcm <- read.csv(file.path(path, "sympho_dcm.csv"),header = T, dec = ".", sep=",")
+
+environment_trait2 <- dcm %>% 
+  select(-X) %>% 
+  inner_join(environment_trait2, by = c("n_parcelle", "n_carre", "n_arbre"))
+
+```
+
 
 # plot 
 ## simple trait 
@@ -564,12 +582,14 @@ Repartition between diameter category seems to be homogene, so there is no link 
 
 #ACP 
 
+
+
 ```{r}
-ACP_data<- Trait_mean_transform_final %>% 
-  select(LMDC, SLA, Chloro_content, LT_mean, morphotype, diameter) 
+ACP_data<- environment_trait2 %>% 
+  select(LMDC, SLA, Chloro_content, LT_mean, morphotype_field, diameter) 
 
 
-res.pca <- PCA(ACP_data, quali.sup = 5, graph= F)
+res.pca <- PCA(ACP_data, quali.sup = 5, graph= F, scale.unit = T)
 
  ind <- fviz_pca_ind(res.pca, label="none", habillage=ACP_data$morphotype,
              addEllipses=TRUE, ellipse.level=0.95)
@@ -608,32 +628,32 @@ ggplot(aes(diameter, LT_mean, color= morphotype))+
 ### topographic variables 
 ```{r}
 ACP_data2<- environment_trait2 %>% 
-  mutate(hydromorphy = as.factor(hydromorphy)) %>% 
-  filter(!is.na(hydromorphy)) %>% 
-  select( dem,aspect, TRI, morphotype_field) 
+  select( dem,  slope, morphotype_field) 
   
 
 
-res.pca2 <- PCA(ACP_data2, quali.sup = 4, graph = F)
+res.pca2 <- PCA(ACP_data2, quali.sup = 3, graph = F)
 
 ind2 <- fviz_pca_ind(res.pca2, label="none", habillage = ACP_data2$morphotype_field,
              addEllipses=TRUE, ellipse.level=0.95)
  
 # var2 <-  
 var12 <-  fviz_pca_var(res.pca2,axes = c(1, 2), alpha.var="contrib")
-var23 <-  fviz_pca_var(res.pca2,axes = c(3, 2), alpha.var="contrib")
-var13 <-  fviz_pca_var(res.pca2,axes = c(1, 3), alpha.var="contrib")
+# var23 <-  fviz_pca_var(res.pca2,axes = c(3, 2), alpha.var="contrib")
+# var13 <-  fviz_pca_var(res.pca2,axes = c(1, 3), alpha.var="contrib")
 
-both2 <- fviz_pca_biplot(res.pca2, label ="var")
+both2 <- fviz_pca_biplot(res.pca2, axes = c(1, 2), label ="var", habillage = ACP_data2$morphotype_field)
 
-plot_grid(var12, var23, var13, ncol = 2, nrow = 2)
+plot_grid(var12, var23, var13, both2, ncol = 2, nrow = 2)
 ```
 
 TRI and slope are highly correlated not so surprising because TRI depict topographic microheterogeneity and calculted with difference of elevation between raster cells and currently land elevation imply slope. 
-In my opinion TRI is a better descriptor for abiotic variables because microheterogeneity in soil slope and elevation could have an impact at the individual scale. Also slope is integrated in wetness index and once again it would biologically easier to interpret than just more or less steep area..
+
+choose between TRI and slope 
+
 Now for curvature variable that depict the changes in slope, I am not sure that it bring any ecological information in our case change in slope would be summarised in wetness index. 
 
-Then aspect variable and TRI are in every projections almost orthogonal so aspect give an information that cannot be resume by TRI 
+Does aspect is used in wetness index definition ? 
 
 Aspect : the aspect of each raster cell (here 1m²)grouped into compass direction (north; north-west etc)
 
@@ -651,6 +671,7 @@ res.pca4 <- PCA(ACP_data4, graph = F)
 var12 <-  fviz_pca_var(res.pca4,axes = c(1, 2), alpha.var="contrib")
 var23 <-  fviz_pca_var(res.pca4,axes = c(3, 2), alpha.var="contrib")
 var13 <-  fviz_pca_var(res.pca4,axes = c(1, 3), alpha.var="contrib")
+
 
 plot_grid(var12, var23, var13, ncol = 2, nrow = 2)
 
@@ -670,15 +691,19 @@ waterlog, hydromorphy = discrete variables not continuous
 
 ```{r}
 ACP_data5<- environment_trait2 %>% 
-  select( wetness, d_creek, TRI, dem, aspect) 
+  select( wetness,  slope, dem, Competition, morphotype_field) 
 
-res.pca5 <- PCA(ACP_data5, graph = F)
+res.pca5 <- PCA(ACP_data5, quali.sup = 5, graph = F)
  
 var12 <-  fviz_pca_var(res.pca5,axes = c(1, 2), alpha.var="contrib")
 var23 <-  fviz_pca_var(res.pca5,axes = c(3, 2), alpha.var="contrib")
 var13 <-  fviz_pca_var(res.pca5,axes = c(1, 3), alpha.var="contrib")
 
 plot_grid(var12, var23, var13, ncol = 2, nrow = 2)
+
+both12 <- fviz_pca_biplot(res.pca5, axes = c(1, 2), label ="var",habillage = ACP_data5$morphotype_field)
+both23 <- fviz_pca_biplot(res.pca5, axes = c(3, 2), label ="var")
+both13 <- fviz_pca_biplot(res.pca5, axes = c(3, 1), label ="var")
 ```
 
 
@@ -689,10 +714,10 @@ ACP without : aspect, d_logging_gap , d_creek
 ```{r}
 
 ACP_data3<- environment_trait2 %>% 
-  select(wetness, dem,d_creek, aspect, TRI,  diameter, LMDC, SLA, Chloro_content, LT_mean, morphotype, Competition) 
+  select(wetness, dem, slope, LMDC, SLA ,LT_mean ,Competition, morphotype_field) 
 
 
-res.pca3 <- PCA(ACP_data3, quali.sup = 11, graph= F)
+res.pca3 <- PCA(ACP_data3, graph= F, quali.sup = 8)
 #plot.PCA(res.pca3, axes=c(3, 2), choix="var", habillage=13)
 #choix="ind"
 
@@ -701,6 +726,13 @@ var23 <-  fviz_pca_var(res.pca3,axes = c(3, 2), alpha.var="contrib")
 var13 <-  fviz_pca_var(res.pca3,axes = c(1, 3), alpha.var="contrib")
 
 plot_grid(var12, var23, var13, ncol = 2, nrow = 2)
+
+both12 <- fviz_pca_biplot(res.pca3, axes = c(1, 2), label ="var" ,habillage = ACP_data3$morphotype_field)
+both23 <- fviz_pca_biplot(res.pca3, axes = c(3, 2), label ="var",habillage = ACP_data3$morphotype_field)
+both13 <- fviz_pca_biplot(res.pca3, axes = c(3, 1), label ="var")
+
+plot_grid(both12, both23, both13, ncol = 2, nrow = 2)
+
 ```
 ## test ACP avec vegan
 

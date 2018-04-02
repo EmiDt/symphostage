@@ -1,11 +1,12 @@
 ---
-title: "linear model"
-output: html_document
-   toc: yes
+title: linear model analysis 
+output: 
+  html_document:
+    toc: yes
     toc_float: yes
 ---
 
-```{r doc settings,  package, message=FALSE, warning=FALSE}
+```{r }
 rm(list = ls())
 knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
 library(dplyr)
@@ -91,8 +92,9 @@ lm(formula = SLA ~ d_creek + Dawkins + d_log_gap + LT_mean +
 ```
 
 ### step forward
+
 ```{r}
-step(object = truc, direction = "forward")
+step(object = SLA_model, direction = "forward")
 lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
     wetness + TypeTopoEN + Dawkins + dem + slope + TRI + aspect + 
     curvature + d_log_gap, data = trait) %>% summary # forward
@@ -102,7 +104,7 @@ lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek +
 ### step backward
 
 ```{r}
-step(object = truc, direction = "backward")
+step(object = SLA_model, direction = "backward")
 lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
     Dawkins + d_log_gap, data = trait) %>%  summary# backward
 ```
@@ -122,11 +124,12 @@ lm(formula = LMDC ~ Competition + d_creek + curvature + TRI +
 ```
 
 ### step backwar
+
 ```{r}
 step(object = LMDC_model, direction = "backward")
 
 lm(formula = LMDC ~ Chloro_content + d_creek + Dawkins + dem + 
-    TRI + curvature + d_log_gap + Competition, data = trait2) %>% summary()
+    TRI + curvature + d_log_gap + Competition, data = data_standar2) %>% summary()
 ```
 
 ### step forward
@@ -137,7 +140,7 @@ step(object = LMDC_model, direction = "forward")
 
 lm(formula = LMDC ~ LT_mean + Chloro_content + d_creek + wetness + 
     TypeTopoEN + Dawkins + dem + slope + TRI + aspect + curvature + 
-    d_log_gap + Competition + diameter, data = trait2) %>% summary()
+    d_log_gap + Competition + diameter, data = data_standar2) %>% summary()
 ```
 
 Backward method is better Adjusted R-squared:  0.3919 
@@ -240,9 +243,37 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor) {
 pairs(environment_standar[,4:10], lower.panel = panel.smooth, upper.panel = panel.cor)
 ```
 
-A we can see on the pairs plot TRI and slope are highly correlated so we need to choose one to do not influence RDA, slope seems to be easier to interprete. Also diameter, Dawkins and Competition index are really correlated, here competition bring a special information that can not be removed and diameter is in a way summarised in the competition index because it is based on the basal area that is calculated with DBH. (dawkins vs d_gap).
+A we can see on the pairs plot TRI and slope are highly correlated so we need to choose one to do not influence RDA, slope seems to be easier to interprete. Also diameter,  Competition index are really correlated, here competition bring a special information that can not be removed and diameter is in a way summarised in the competition index because it is based on the basal area that is calculated with DBH. 
+
+```{r}
+environment_standar <- environment_standar %>% 
+  dplyr::select(-TRI , -diameter)
+
+pairs(environment_standar[,4:10], lower.panel = panel.smooth, upper.panel = panel.cor)
+```
+
 
 Then I need to choose between dem, slope and wetness as the wetness index is derivated from dem and other topographic information like slope so all the information is summarised in wetness.
+
+```{r}
+environment_standar <- environment_standar %>% 
+  dplyr::select(-slope, -dem)
+
+pairs(environment_standar[,4:11], lower.panel = panel.smooth, upper.panel = panel.cor)
+```
+SO now there is a hudge correlation between d_log_gap and d_creek due to bottom land is not exploitable so logging gap had been done with a certain distance from those area. D_creek give a better ecological information, than d_log_gap because exploitation had been done sevral years ago and do not longer impact leaf functionnal trait due to the reduce leaf life span. 
+
+Wetness and type topo are correlated and as wetness is a derivative analysis of topographic information it would be better to choose it because topographic information is preserve.
+
+Finally Dawkins to competition don't know, it would be better with d_gap because without Dawkins wa lost light information that cannot be extract from competition even if they are correlated. 
+
+```{r}
+environment_standar <- environment_standar %>% 
+  dplyr::select(-d_log_gap, -TypeTopoEN, -Dawkins)
+
+pairs(environment_standar[,4:8], lower.panel = panel.smooth, upper.panel = panel.cor)
+```
+
 
 ```{r}
 library(faraway)
@@ -256,17 +287,30 @@ Borcard et al. 2011: 175 argue that in the case of RDA, VIFs > 10 should be avoi
 
 ## analysis
 
+If lm part is not run before you need to remove n_parcelle, n_carre and n_arbre from trait_standar and environment_standar
+
 ```{r}
+# trait_standar <- trait_standar %>% 
+#   dplyr::select(-n_parcelle, -n_carre, -n_arbre)
+# environment_standar <- environment_standar %>% 
+#   dplyr::select(-n_parcelle, -n_carre, -n_arbre)
+
 rda_trait <- rda(trait_standar~.,environment_standar,scale = T, na.omit= T)
 summary(rda_trait)
+
+```
+
+Now rda model validation 
+```{r}
 coef(rda_trait)
 set.seed(111)
 anova.cca(rda_trait, step=1000)
 anova.cca(rda_trait, by="axis", step= 1000)
 ```
 
+rda result plot
+
 ```{r}
-par(mfrow = c(1, 2))
 plot(rda_trait, scaling = 0.5, main = "Triplot RDA scaling 1 - wa scores")
 var.sc <- scores(rda_trait, choices = 1:2, scaling = 1, display = "sp")
 arrows(0, 0, var.sc[, 1], var.sc[, 2], length = 0, lty = 1, col = "red")
