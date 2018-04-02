@@ -1,0 +1,275 @@
+---
+title: "linear model"
+output: html_document
+   toc: yes
+    toc_float: yes
+---
+
+```{r doc settings,  package, message=FALSE, warning=FALSE}
+rm(list = ls())
+knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library("gridExtra")
+library("cowplot")
+library(car)
+library(FactoMineR)
+library(ade4)
+library(vegan)
+library(MASS)
+library(ellipse)
+
+```
+
+# data
+
+```{r}
+path <- "C:\\Users\\emduc\\Desktop\\"
+trait <- read.csv(file.path(path, "environment_trait2.csv"),header = T, dec = ".", sep=",")
+
+topo <- read.csv(file.path(path, "topo_sympho.csv"),header = T, dec = ".", sep=";") 
+
+topo <- topo %>% 
+  dplyr::filter(TypeTopoEN !="")  
+
+trait <- trait  %>% 
+  mutate(Dawkins = as.factor(as.character(Dawkins))) %>% 
+  full_join(topo) %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre,SLA, LT_mean, Chloro_content, LMDC, d_creek, wetness, TypeTopoEN, Dawkins, dem, slope, TRI, aspect, curvature, d_log_gap, Competition, diameter) %>% 
+  dplyr::filter(!is.na(TypeTopoEN))
+```
+
+## standardisation 
+
+```{r}
+
+trait_standar <- trait %>%
+  dplyr::select(n_parcelle, n_carre, n_arbre,LT_mean, Chloro_content, LMDC, SLA) %>% 
+  mutate(LT_mean = (LT_mean/ (mean(trait$LT_mean)))) %>% 
+  mutate(Chloro_content = (Chloro_content/ (mean(trait$Chloro_content)))) %>% 
+   mutate(SLA= (SLA/ (mean(trait$SLA)))) 
+
+environment_standar <- trait %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre,wetness,Competition,   d_creek, aspect, curvature, TRI, diameter,dem,slope, TypeTopoEN, Dawkins, d_log_gap) %>% 
+  mutate( diameter= (diameter/ (mean(trait$diameter)))) %>% 
+  mutate( d_creek= (d_creek/ (mean(trait$d_creek)))) %>%
+  mutate( wetness= (wetness/(mean(trait$wetness)))) %>% 
+  mutate( dem= (dem/(mean(trait$dem)))) %>% 
+  mutate( slope= (slope/(mean(trait$slope)))) %>%
+  mutate( TRI= (TRI/(mean(trait$TRI)))) %>%
+  mutate( curvature= (curvature/(mean(trait$curvature)))) %>%
+  mutate( aspect= (aspect/(mean(trait$aspect)))) %>%
+  mutate( Competition= (Competition/(mean(trait$Competition)))) %>% 
+mutate( d_log_gap= (d_log_gap/(mean(trait$d_log_gap))))
+
+data_standar <- full_join(environment_standar,trait_standar) %>%
+  
+  dplyr::select(-n_parcelle, -n_carre, -n_arbre)
+
+```
+
+# lm 
+
+## SLA
+### step both
+
+```{r}
+trait <- trait %>% 
+  dplyr::select(-n_parcelle, -n_carre, -n_arbre)
+
+SLA_model <-  lm(SLA~., data= trait)
+step(object = SLA_model, direction = "both")
+
+lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
+    Dawkins + d_log_gap, data = trait) %>% summary() #both 
+
+SLA_model <-  lm(SLA~., data= data_standar)
+step(object = SLA_model, direction = "both")
+lm(formula = SLA ~ d_creek + Dawkins + d_log_gap + LT_mean + 
+    Chloro_content + LMDC, data = data_standar) %>% summary
+```
+
+### step forward
+```{r}
+step(object = truc, direction = "forward")
+lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
+    wetness + TypeTopoEN + Dawkins + dem + slope + TRI + aspect + 
+    curvature + d_log_gap, data = trait) %>% summary # forward
+```
+ The forwar analysis seems to do some mistake when we summarize the call formula.. 
+
+### step backward
+
+```{r}
+step(object = truc, direction = "backward")
+lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
+    Dawkins + d_log_gap, data = trait) %>%  summary# backward
+```
+
+with the backwar analysis we have the same result than "both" step method. th adjusted R-squared is 0.7086 , a quite good value 
+
+
+## LMDC
+### step both
+```{r}
+ data_standar2<- data_standar %>%  dplyr::select(-SLA) 
+LMDC_model <- lm(LMDC~., data=data_standar2)
+step(object = LMDC_model, direction = "both")
+
+lm(formula = LMDC ~ Competition + d_creek + curvature + TRI + 
+    dem + Dawkins + d_log_gap + Chloro_content, data = data_standar2) %>%  summary()
+```
+
+### step backwar
+```{r}
+step(object = LMDC_model, direction = "backward")
+
+lm(formula = LMDC ~ Chloro_content + d_creek + Dawkins + dem + 
+    TRI + curvature + d_log_gap + Competition, data = trait2) %>% summary()
+```
+
+### step forward
+
+
+```{r}
+step(object = LMDC_model, direction = "forward")
+
+lm(formula = LMDC ~ LT_mean + Chloro_content + d_creek + wetness + 
+    TypeTopoEN + Dawkins + dem + slope + TRI + aspect + curvature + 
+    d_log_gap + Competition + diameter, data = trait2) %>% summary()
+```
+
+Backward method is better Adjusted R-squared:  0.3919 
+
+## LT
+### step both
+```{r}
+LT_mean_model <- lm(LT_mean~., data=data_standar2)
+step(object = LT_mean_model, direction = "both")
+
+lm(formula = LT_mean ~ wetness + diameter + dem + TypeTopoEN + 
+    Dawkins + Chloro_content, data = data_standar2) %>%  summary()
+```
+
+### step backward
+```{r}
+step(object = LT_mean_model, direction = "backward")
+
+lm(formula = LT_mean ~ wetness + diameter + dem + TypeTopoEN + 
+    Dawkins + Chloro_content, data = data_standar2) %>% summary()
+```
+
+### step forward
+
+```{r}
+step(object = LT_mean_model, direction = "forward")
+
+lm(formula = LT_mean ~ wetness + Competition + d_creek + aspect + 
+    curvature + TRI + diameter + dem + slope + TypeTopoEN + Dawkins + 
+    d_log_gap + Chloro_content + LMDC, data = data_standar2)%>% summary()
+```
+
+Once again forward method does not work well and result from both method is the same than the backward one. And Adjusted R-squared:  0.3322 
+
+
+
+## chloro content
+using data standar with SLA value because chlorocontent is not correlated or a component of SLA
+
+### step both
+```{r}
+
+Chloro_content_model <- lm(Chloro_content~., data=data_standar)
+step(object = Chloro_content_model, direction = "both")
+
+lm(formula = Chloro_content ~ Competition + aspect + diameter + 
+    dem + LMDC + SLA, data = data_standar) %>%  summary()
+```
+aspect is selected by step function but it is not significant when lm is applied alone .. 
+### step backward
+```{r}
+step(object = Chloro_content_model, direction = "backward")
+
+lm(formula = Chloro_content ~ Competition + aspect + diameter + 
+    dem + LMDC + SLA, data = data_standar) %>% summary()
+```
+Same result as both direction 
+
+### step forward
+
+```{r}
+step(object = Chloro_content_model, direction = "forward")
+
+lm(formula = Chloro_content ~ wetness + Competition + d_creek + 
+    aspect + curvature + TRI + diameter + dem + slope + TypeTopoEN + 
+    Dawkins + d_log_gap + LT_mean + LMDC + SLA, data = data_standar)%>% summary()
+```
+
+Once again forward method does not work well and result from both method is the same than the backward one. And Adjusted R-squared:  0.3176
+
+
+#rda 
+
+##data modification 
+
+
+
+
+```{r}
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor) {
+  usr <- par("usr")
+  on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r <- abs(cor(x, y, use = "complete.obs"))
+  txt <- format(c(r, 0.123456789), digits = digits)[1]
+  txt <- paste(prefix, txt, sep = "")
+  if (missing(cex.cor)) cex <- 0.8 / strwidth(txt)
+
+  test <- cor.test(x, y)
+  # borrowed from printCoefmat
+  Signif <- symnum(
+    test$p.value, corr = FALSE, na = FALSE,
+    cutpoints = c(0, 0.05, 0.1, 1),
+    symbols = c("*", ".", " ")
+  )
+
+  text(0.5, 0.5, txt, cex = cex * r)
+  text(.8, .8, Signif, cex = cex, col = 2)
+}
+pairs(environment_standar[,4:10], lower.panel = panel.smooth, upper.panel = panel.cor)
+```
+
+A we can see on the pairs plot TRI and slope are highly correlated so we need to choose one to do not influence RDA, slope seems to be easier to interprete. Also diameter, Dawkins and Competition index are really correlated, here competition bring a special information that can not be removed and diameter is in a way summarised in the competition index because it is based on the basal area that is calculated with DBH. (dawkins vs d_gap).
+
+Then I need to choose between dem, slope and wetness as the wetness index is derivated from dem and other topographic information like slope so all the information is summarised in wetness.
+
+```{r}
+library(faraway)
+sort(vif(environment_standar) )
+```
+
+Borcard et al. 2011: 175 argue that in the case of RDA, VIFs > 10 should be avoided, so here everything is right. 
+
+
+
+
+## analysis
+
+```{r}
+rda_trait <- rda(trait_standar~.,environment_standar,scale = T, na.omit= T)
+summary(rda_trait)
+coef(rda_trait)
+set.seed(111)
+anova.cca(rda_trait, step=1000)
+anova.cca(rda_trait, by="axis", step= 1000)
+```
+
+```{r}
+par(mfrow = c(1, 2))
+plot(rda_trait, scaling = 0.5, main = "Triplot RDA scaling 1 - wa scores")
+var.sc <- scores(rda_trait, choices = 1:2, scaling = 1, display = "sp")
+arrows(0, 0, var.sc[, 1], var.sc[, 2], length = 0, lty = 1, col = "red")
+```
+
+
