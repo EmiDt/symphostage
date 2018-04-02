@@ -64,155 +64,7 @@ environment_standar <- trait %>%
   mutate( Competition= (Competition/(mean(trait$Competition)))) %>% 
 mutate( d_log_gap= (d_log_gap/(mean(trait$d_log_gap))))
 
-data_standar <- full_join(environment_standar,trait_standar) %>%
-  
-  dplyr::select(-n_parcelle, -n_carre, -n_arbre)
-
 ```
-
-# lm 
-
-## SLA
-### step both
-
-```{r}
-trait <- trait %>% 
-  dplyr::select(-n_parcelle, -n_carre, -n_arbre)
-
-SLA_model <-  lm(SLA~., data= trait)
-step(object = SLA_model, direction = "both")
-
-lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
-    Dawkins + d_log_gap, data = trait) %>% summary() #both 
-
-SLA_model <-  lm(SLA~., data= data_standar)
-step(object = SLA_model, direction = "both")
-lm(formula = SLA ~ d_creek + Dawkins + d_log_gap + LT_mean + 
-    Chloro_content + LMDC, data = data_standar) %>% summary
-```
-
-### step forward
-
-```{r}
-step(object = SLA_model, direction = "forward")
-lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
-    wetness + TypeTopoEN + Dawkins + dem + slope + TRI + aspect + 
-    curvature + d_log_gap, data = trait) %>% summary # forward
-```
- The forwar analysis seems to do some mistake when we summarize the call formula.. 
-
-### step backward
-
-```{r}
-step(object = SLA_model, direction = "backward")
-lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
-    Dawkins + d_log_gap, data = trait) %>%  summary# backward
-```
-
-with the backwar analysis we have the same result than "both" step method. th adjusted R-squared is 0.7086 , a quite good value 
-
-
-## LMDC
-### step both
-```{r}
- data_standar2<- data_standar %>%  dplyr::select(-SLA) 
-LMDC_model <- lm(LMDC~., data=data_standar2)
-step(object = LMDC_model, direction = "both")
-
-lm(formula = LMDC ~ Competition + d_creek + curvature + TRI + 
-    dem + Dawkins + d_log_gap + Chloro_content, data = data_standar2) %>%  summary()
-```
-
-### step backwar
-
-```{r}
-step(object = LMDC_model, direction = "backward")
-
-lm(formula = LMDC ~ Chloro_content + d_creek + Dawkins + dem + 
-    TRI + curvature + d_log_gap + Competition, data = data_standar2) %>% summary()
-```
-
-### step forward
-
-
-```{r}
-step(object = LMDC_model, direction = "forward")
-
-lm(formula = LMDC ~ LT_mean + Chloro_content + d_creek + wetness + 
-    TypeTopoEN + Dawkins + dem + slope + TRI + aspect + curvature + 
-    d_log_gap + Competition + diameter, data = data_standar2) %>% summary()
-```
-
-Backward method is better Adjusted R-squared:  0.3919 
-
-## LT
-### step both
-```{r}
-LT_mean_model <- lm(LT_mean~., data=data_standar2)
-step(object = LT_mean_model, direction = "both")
-
-lm(formula = LT_mean ~ wetness + diameter + dem + TypeTopoEN + 
-    Dawkins + Chloro_content, data = data_standar2) %>%  summary()
-```
-
-### step backward
-```{r}
-step(object = LT_mean_model, direction = "backward")
-
-lm(formula = LT_mean ~ wetness + diameter + dem + TypeTopoEN + 
-    Dawkins + Chloro_content, data = data_standar2) %>% summary()
-```
-
-### step forward
-
-```{r}
-step(object = LT_mean_model, direction = "forward")
-
-lm(formula = LT_mean ~ wetness + Competition + d_creek + aspect + 
-    curvature + TRI + diameter + dem + slope + TypeTopoEN + Dawkins + 
-    d_log_gap + Chloro_content + LMDC, data = data_standar2)%>% summary()
-```
-
-Once again forward method does not work well and result from both method is the same than the backward one. And Adjusted R-squared:  0.3322 
-
-
-
-## chloro content
-using data standar with SLA value because chlorocontent is not correlated or a component of SLA
-
-### step both
-```{r}
-
-Chloro_content_model <- lm(Chloro_content~., data=data_standar)
-step(object = Chloro_content_model, direction = "both")
-
-lm(formula = Chloro_content ~ Competition + aspect + diameter + 
-    dem + LMDC + SLA, data = data_standar) %>%  summary()
-```
-aspect is selected by step function but it is not significant when lm is applied alone .. 
-### step backward
-```{r}
-step(object = Chloro_content_model, direction = "backward")
-
-lm(formula = Chloro_content ~ Competition + aspect + diameter + 
-    dem + LMDC + SLA, data = data_standar) %>% summary()
-```
-Same result as both direction 
-
-### step forward
-
-```{r}
-step(object = Chloro_content_model, direction = "forward")
-
-lm(formula = Chloro_content ~ wetness + Competition + d_creek + 
-    aspect + curvature + TRI + diameter + dem + slope + TypeTopoEN + 
-    Dawkins + d_log_gap + LT_mean + LMDC + SLA, data = data_standar)%>% summary()
-```
-
-Once again forward method does not work well and result from both method is the same than the backward one. And Adjusted R-squared:  0.3176
-
-
-#rda 
 
 ##data modification 
 
@@ -285,17 +137,19 @@ Borcard et al. 2011: 175 argue that in the case of RDA, VIFs > 10 should be avoi
 
 
 
+
+#rda 
 ## analysis
 
 If lm part is not run before you need to remove n_parcelle, n_carre and n_arbre from trait_standar and environment_standar
 
 ```{r}
-# trait_standar <- trait_standar %>% 
-#   dplyr::select(-n_parcelle, -n_carre, -n_arbre)
-# environment_standar <- environment_standar %>% 
-#   dplyr::select(-n_parcelle, -n_carre, -n_arbre)
+ trait_standar2 <- trait_standar %>% 
+  dplyr::select(-n_parcelle, -n_carre, -n_arbre)
+environment_standar2 <- environment_standar %>% 
+  dplyr::select(-n_parcelle, -n_carre, -n_arbre)
 
-rda_trait <- rda(trait_standar~.,environment_standar,scale = T, na.omit= T)
+rda_trait <- rda(trait_standar2~.,environment_standar2,scale = T, na.omit= T)
 summary(rda_trait)
 
 ```
@@ -315,5 +169,184 @@ plot(rda_trait, scaling = 0.5, main = "Triplot RDA scaling 1 - wa scores")
 var.sc <- scores(rda_trait, choices = 1:2, scaling = 1, display = "sp")
 arrows(0, 0, var.sc[, 1], var.sc[, 2], length = 0, lty = 1, col = "red")
 ```
+
+
+
+# lm 
+
+Using standardized data and only uncorrelated data to avoid singularities error in multiplicative model 
+```{r}
+data_standar <- full_join(environment_standar,trait_standar) %>%
+  
+  dplyr::select(-n_parcelle, -n_carre, -n_arbre) 
+
+data_standar$Dawkins <- trait$Dawkins
+```
+
+
+## SLA
+
+### step both
+
+
+```{r}
+# trait <- trait %>% 
+#   dplyr::select(-n_parcelle, -n_carre, -n_arbre)
+# 
+# SLA_model <-  lm(SLA~., data= trait)
+# step(object = SLA_model, direction = "both")
+
+# lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
+#     Dawkins + d_log_gap, data = trait) %>% summary() #both 
+
+SLA_model <-  lm(SLA~., data= data_standar)
+#step(object = SLA_model, direction = "both")
+
+lm(formula = SLA ~ d_creek + LT_mean + Chloro_content + LMDC + 
+    Dawkins, data = data_standar) %>% summary
+
+lm(formula = SLA ~ d_creek * Dawkins  * LT_mean +
+    Chloro_content * LMDC, data = data_standar) %>% summary
+```
+
+
+here multiplicative model with the same pre-selected variables from step have a better adjusted Rsquarred than the additive one respectiveky 0.7152 and 0.7066 butI don't think that the difference is really significant. 
+
+### step forward
+
+```{r}
+step(object = SLA_model, direction = "forward")
+lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
+    wetness + TypeTopoEN + Dawkins + dem + slope + TRI + aspect + 
+    curvature + d_log_gap, data = trait) %>% summary # forward
+```
+ The forwar analysis seems to do some mistake when we summarize the call formula.. 
+
+### step backward
+
+```{r}
+step(object = SLA_model, direction = "backward")
+lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
+    Dawkins + d_log_gap, data = trait) %>%  summary# backward
+```
+
+with the backwar analysis we have the same result than "both" step method. th adjusted R-squared is 0.7086 , a quite good value 
+
+
+## LMDC
+### step both
+
+```{r}
+ data_standar2<- data_standar %>%
+  dplyr::select(-SLA) 
+  
+LMDC_model <- lm(LMDC~., data=data_standar2)
+step(object = LMDC_model, direction = "both")
+
+lm(formula = LMDC ~ wetness + Competition + curvature + Chloro_content + 
+    Dawkins, data = data_standar2) %>%  summary()
+
+ lm(formula = LMDC ~ Competition *wetness * Chloro_content* Dawkins, data = data_standar2 ) %>%  summary()
+```
+here with the selected variable from step put in an multiplicative model there is no significant interaction and the adjusted R-squared is  0.3344 whereas with the additive model the adjusted R-squared is  0.3612. So as there is no significant interaction the additive model will be selected. 
+
+### step backwar
+
+```{r}
+step(object = LMDC_model, direction = "backward")
+
+lm(formula = LMDC ~ Chloro_content + d_creek + Dawkins + dem + 
+    TRI + curvature + d_log_gap + Competition, data = data_standar2) %>% summary()
+```
+
+### step forward
+
+
+```{r}
+step(object = LMDC_model, direction = "forward")
+
+lm(formula = LMDC ~ LT_mean + Chloro_content + d_creek + wetness + 
+    TypeTopoEN + Dawkins + dem + slope + TRI + aspect + curvature + 
+    d_log_gap + Competition + diameter, data = data_standar2) %>% summary()
+```
+
+Backward method is better Adjusted R-squared:  0.3919 
+
+## LT
+### step both
+
+
+```{r}
+LT_mean_model <- lm(LT_mean~., data=data_standar2)
+step(object = LT_mean_model, direction = "both")
+
+lm(formula = LT_mean ~ wetness + Competition + curvature + Dawkins, 
+    data = data_standar2) %>%  summary()
+
+ lm(formula = LT_mean ~ wetness * 
+     Dawkins * Dawkins* Competition , data = data_standar2) %>%  summary()
+```
+the multiplicative form does not show any interesting interaction between variable and have a smaller adjusted R-squared : 0.2582 against 0.267
+### step backward
+```{r}
+step(object = LT_mean_model, direction = "backward")
+
+lm(formula = LT_mean ~ wetness + diameter + dem + TypeTopoEN + 
+    Dawkins + Chloro_content, data = data_standar2) %>% summary()
+```
+
+### step forward
+
+```{r}
+step(object = LT_mean_model, direction = "forward")
+
+lm(formula = LT_mean ~ wetness + Competition + d_creek + aspect + 
+    curvature + TRI + diameter + dem + slope + TypeTopoEN + Dawkins + 
+    d_log_gap + Chloro_content + LMDC, data = data_standar2)%>% summary()
+```
+
+Once again forward method does not work well and result from both method is the same than the backward one. And Adjusted R-squared:  0.3322 
+
+
+
+## chloro content
+using data standar with SLA value because chlorocontent is not correlated or a component of SLA
+
+### step both
+
+```{r}
+
+Chloro_content_model <- lm(Chloro_content~., data=data_standar)
+step(object = Chloro_content_model, direction = "both")
+
+lm(formula = Chloro_content ~ wetness + Competition + aspect + 
+    LT_mean + LMDC + SLA, data = data_standar) %>%  summary()
+
+ lm(formula = Chloro_content ~ Competition * aspect *  LMDC * SLA+ LT_mean, data = data_standar) %>%  summary()
+
+```
+aspect is selected by step function but it is not significant when lm is applied alone ..
+
+Multiplicative form give almost the same adjusted R-squared but there are just a few significant variables and interactions. 
+### step backward
+```{r}
+step(object = Chloro_content_model, direction = "backward")
+
+lm(formula = Chloro_content ~ Competition + aspect + diameter + 
+    dem + LMDC + SLA, data = data_standar) %>% summary()
+```
+Same result as both direction 
+
+### step forward
+
+```{r}
+step(object = Chloro_content_model, direction = "forward")
+
+lm(formula = Chloro_content ~ wetness + Competition + d_creek + 
+    aspect + curvature + TRI + diameter + dem + slope + TypeTopoEN + 
+    Dawkins + d_log_gap + LT_mean + LMDC + SLA, data = data_standar)%>% summary()
+```
+
+Once again forward method does not work well and result from both method is the same than the backward one. And Adjusted R-squared:  0.3176
 
 
