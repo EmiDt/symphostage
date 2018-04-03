@@ -1,3 +1,7 @@
+# Sylvain 3 avril 2018
+* `path` correction in G_neighbour.Rmd
+* `data.sh` update
+
 # Sylvain 23 mars 2018
 * `path` correction in correction and plot data full Rmarkdowns
 * updated data.sh script
