@@ -20,7 +20,9 @@ library(ade4)
 library(vegan)
 library(MASS)
 library(ellipse)
-path <- "C:\\Users\\emduc\\Desktop\\"
+library(smatr)
+
+path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
 # path <- "./data/" # To be used on sylvain local machine
 ```
 
@@ -37,22 +39,24 @@ topo <- topo %>%
 trait <- trait  %>% 
   mutate(Dawkins = as.factor(as.character(Dawkins))) %>% 
   full_join(topo) %>% 
-  dplyr::select(n_parcelle, n_carre, n_arbre,SLA, LT_mean, Chloro_content, LMDC, d_creek, wetness, TypeTopoEN, Dawkins, dem, slope, TRI, aspect, curvature, d_log_gap, Competition, diameter) %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre,SLA, LT_mean, Chloro_content, LMDC,Area_exclude , d_creek, wetness, TypeTopoEN, Dawkins, dem, slope, TRI, aspect, curvature, d_log_gap, Competition, diameter) %>% 
   dplyr::filter(!is.na(TypeTopoEN))
 ```
+In the following text, the terms descriptors and varaible will be used interchangeably. These refereing to the attributes (not in the functional way), or character used to describe or compoare the object of the study.
 
 ## standardisation 
-
+ here I made standardisation to simplify mathematical forms of relation shps because we have  quantitative descriptors of differents types. This omogeneisation of scale is here done by expansion (dividing by a constant here mean value ) to have dimentionless descriptors.  But It might be better to do a total linear transformation by translation (adding or subtracting a constant) and then expansion which gives : y' = b0 + b1y
 ```{r}
 
 trait_standar <- trait %>%
-  dplyr::select(n_parcelle, n_carre, n_arbre,LT_mean, Chloro_content, LMDC, SLA) %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre,LT_mean, Chloro_content, LMDC, SLA, Area_exclude) %>% 
   mutate(LT_mean = (LT_mean/ (mean(trait$LT_mean)))) %>% 
   mutate(Chloro_content = (Chloro_content/ (mean(trait$Chloro_content)))) %>% 
-   mutate(SLA= (SLA/ (mean(trait$SLA)))) 
+   mutate(SLA= (SLA/ (mean(trait$SLA)))) %>% 
+  mutate((Area_exclude = (Area_exclude/mean(Area_exclude))))
 
 environment_standar <- trait %>% 
-  dplyr::select(n_parcelle, n_carre, n_arbre,wetness,Competition,   d_creek, aspect, curvature, TRI, diameter,dem,slope, TypeTopoEN, Dawkins, d_log_gap) %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre,wetness,Competition,   d_creek, aspect, curvature, TRI, diameter,dem,slope, TypeTopoEN, Dawkins, d_log_gap, Area_exclude) %>% 
   mutate( diameter= (diameter/ (mean(trait$diameter)))) %>% 
   mutate( d_creek= (d_creek/ (mean(trait$d_creek)))) %>%
   mutate( wetness= (wetness/(mean(trait$wetness)))) %>% 
@@ -65,8 +69,9 @@ environment_standar <- trait %>%
 mutate( d_log_gap= (d_log_gap/(mean(trait$d_log_gap))))
 
 ```
+ranging or z-score methods are other solution espacially for ordination procedure.. 
 
-##data modification 
+## descriptors selection
 
 
 
@@ -135,7 +140,26 @@ sort(vif(environment_standar) )
 Borcard et al. 2011: 175 argue that in the case of RDA, VIFs > 10 should be avoided, so here everything is right. 
 
 
+## descriptors distribution 
 
+```{r}
+wetness <- ggplot(environment_standar, aes((wetness)))+
+  geom_histogram(na.rm = T)
+
+competition <- ggplot(environment_standar, aes((Competition)))+
+  geom_histogram(na.rm = T)
+
+d_creek <- ggplot(environment_standar, aes((d_creek)))+
+  geom_histogram(na.rm = T)
+
+aspect <- ggplot(environment_standar, aes((aspect)))+
+  geom_histogram(na.rm = T)
+
+curvature <- ggplot(environment_standar, aes((curvature)))+
+  geom_histogram(na.rm = T)
+
+plot_grid(wetness, competition, d_creek, aspect,curvature   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
+```
 
 
 #rda 
@@ -175,6 +199,7 @@ arrows(0, 0, var.sc[, 1], var.sc[, 2], length = 0, lty = 1, col = "red")
 # lm 
 
 Using standardized data and only uncorrelated data to avoid singularities error in multiplicative model 
+
 ```{r}
 data_standar <- full_join(environment_standar,trait_standar) %>%
   
@@ -193,7 +218,7 @@ abline(qqline(trait$SLA,datax=TRUE))
 hist((trait$SLA))
 ```
 
-Accordindg to shapiro test SLA distribution is not normal even if with QQ plot it seems to be normal. Also log transformation does not improve normality assymption whereas it seems to work in some papers like Lajoie & Vellen 2015. 
+Accordindg to shapiro test SLA distribution is not normal even if with QQ plot it seems to be normal. Also log transformation does not improve normality assumption whereas it seems to work in some papers like Lajoie & Vellen 2015 or log10 like in Vajardero and Piper 2010 or Wright et al 2007. And other transfromation for left-skewed distribution also are not efficient. 
 
 ### step both
 
@@ -207,17 +232,19 @@ Accordindg to shapiro test SLA distribution is not normal even if with QQ plot i
 
 # lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
 #     Dawkins + d_log_gap, data = trait) %>% summary() #both 
+data_standar3 <- data_standar %>% 
+  dplyr::select(-Area_exclude)
 
-SLA_model <-  lm(SLA~., data= data_standar)
-#step(object = SLA_model, direction = "both")
+SLA_model <-  lm(SLA~., data= data_standar3)
+step(object = SLA_model, direction = "both")
 
 lm(formula = log(SLA) ~ d_creek + LT_mean + Chloro_content + LMDC + 
-    Dawkins, data = data_standar) %>% summary
+    Dawkins, data = data_standar3) %>% summary
 lm(formula = SLA ~ d_creek + LT_mean + Chloro_content + LMDC + 
     Dawkins, data = data_standar) %>% summary
 
 lm(formula = SLA ~ d_creek * Dawkins  * LT_mean +
-    Chloro_content * LMDC, data = data_standar) %>% summary
+    Chloro_content * LMDC, data = data_standar3) %>% summary
 ```
 
 
@@ -245,7 +272,7 @@ with the backwar analysis we have the same result than "both" step method. th ad
 
 
 ## LMDC
-
+### normality test
 ```{r}
 shapiro.test(data_standar$LMDC) ;shapiro.test(trait$LMDC); shapiro.test(log(trait$LMDC))
 qqnorm(trait$LMDC,datax=TRUE) 
@@ -262,31 +289,26 @@ abline(qqline(trait$LMDC,datax=TRUE))
 LMDC_model <- lm(LMDC~., data=data_standar2)
 step(object = LMDC_model, direction = "both")
 
-lm(formula = LMDC ~ wetness + Competition + curvature + Chloro_content + 
-    Dawkins, data = data_standar2) %>%  summary()
+lm(formula = LMDC ~ Competition + curvature + Area_exclude + 
+    Chloro_content + Dawkins, data = data_standar2) %>% summary
 
- lm(formula = LMDC ~ Competition *wetness * Chloro_content* Dawkins, data = data_standar2 ) %>%  summary()
+   # lm(formula = LMDC ~ Competition *curvature* Area_exclude * Chloro_content* Dawkins, data = data_standar2 ) %>%  summary()
 ```
-here with the selected variable from step put in an multiplicative model there is no significant interaction and the adjusted R-squared is  0.3344 whereas with the additive model the adjusted R-squared is  0.3612. So as there is no significant interaction the additive model will be selected. 
+here with the selected variable from step put in an multiplicative model there is no significant interaction and the adjusted R-squared is  0.4173 whereas with the additive model the adjusted R-squared is   0.4294 . So as there is no significant interaction the additive model will be selected. 
 
 ### step backwar
 
 ```{r}
-step(object = LMDC_model, direction = "backward")
+#step(object = LMDC_model, direction = "backward")
 
-lm(formula = LMDC ~ Chloro_content + d_creek + Dawkins + dem + 
-    TRI + curvature + d_log_gap + Competition, data = data_standar2) %>% summary()
 ```
 
 ### step forward
 
 
 ```{r}
-step(object = LMDC_model, direction = "forward")
+#step(object = LMDC_model, direction = "forward")
 
-lm(formula = LMDC ~ LT_mean + Chloro_content + d_creek + wetness + 
-    TypeTopoEN + Dawkins + dem + slope + TRI + aspect + curvature + 
-    d_log_gap + Competition + diameter, data = data_standar2) %>% summary()
 ```
 
 Backward method is better Adjusted R-squared:  0.3919 
@@ -311,11 +333,11 @@ abline(qqline(trait$LT_mean,datax=TRUE))
 LT_mean_model <- lm(LT_mean~., data=data_standar2)
 step(object = LT_mean_model, direction = "both")
 
-lm(formula = LT_mean ~ wetness + Competition + curvature + Dawkins, 
-    data = data_standar2) %>%  summary()
+lm(formula = LT_mean ~ Competition + curvature + Area_exclude + 
+    Dawkins, data = data_standar2) %>%  summary
 
- lm(formula = LT_mean ~ wetness * 
-     Dawkins * Dawkins* Competition , data = data_standar2) %>%  summary()
+ # lm(formula = LT_mean ~ curvature * 
+ #     Dawkins * Area_exclude* Competition , data = data_standar2) %>%  summary()
 ```
 the multiplicative form does not show any interesting interaction between variable and have a smaller adjusted R-squared : 0.2582 against 0.267
 ### step backward
@@ -357,14 +379,14 @@ abline(qqline(trait$Chloro_content,datax=TRUE))
 
 ```{r}
 
-Chloro_content_model <- lm(Chloro_content~., data=data_standar)
+Chloro_content_model <- lm(Chloro_content~., data=data_standar3)
 step(object = Chloro_content_model, direction = "both")
 
 truc <- lm(formula = Chloro_content ~ wetness + Competition + aspect + 
-    LT_mean + LMDC + SLA, data = data_standar) %>%  summary() 
+    LT_mean + LMDC + SLA, data = data_standar3) %>%  summary() 
 
 plot(lm(formula = Chloro_content ~ wetness + Competition + aspect + 
-    LT_mean + LMDC + SLA, data = data_standar))
+    LT_mean + LMDC + SLA, data = data_standar3))
 
 
 
@@ -399,4 +421,24 @@ lm(formula = Chloro_content ~ wetness + Competition + d_creek +
 
 Once again forward method does not work well and result from both method is the same than the backward one. And Adjusted R-squared:  0.3176
 
+
+
+#  SMA
+"Relationship strength was quantified using correlation r2 and P values; relationship
+sample sizes given in Table 2). Relationship strength was quantified using correlation r2 and P values; relationship
+slopes were described by their standardized major axes
+(SMAs). SMA analyses are appropriate when the purpose
+of line-fitting is to summarize the relationship between
+two variables, as in many allometric studies (Sokal and
+Rohlf, 1995). An SMA line is the slope of the first princi-pal axis in a PCA analysis based on standardized data,
+fitted through the centroid of the data. SMA routines
+were run in a DOS-based computer package, (S)MATR
+(Falster et al., 2003)." Wright et al, 2007
+
+```{r}
+test <- sma(SLA~LMDC, data=data_standar) 
+summary(test)
+plot(test, col ="purple")
+abline((lm(data_standar$SLA~data_standar$LMDC)))
+```
 

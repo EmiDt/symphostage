@@ -17,8 +17,8 @@ library("gridExtra")
 library("cowplot")
 library(FactoMineR)
 library(factoextra)
-# path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
-path <- "./data/" # To be used on sylvain local machine
+ path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+#path <- "./data/" # To be used on sylvain local machine
 ```
 
 # data upload
@@ -61,7 +61,7 @@ Trait_mean_transform <- Trait_mean_individuals_num %>%
   mutate(SLA = Area_exclude / Dry_Weight) %>% 
   mutate(LMDC = Dry_Weight/ Fresh_weight) %>% 
   mutate(Chloro_content = ((154.1* SPAD_mean)/(197.6-SPAD_mean))) %>% 
-  select(n_parcelle, n_carre, n_arbre, "LT_mean", "Branch_diameter", "Bark_thickness", "Bark_infra_density", "Wood_infra_density", LMDC, SLA, Chloro_content)
+  dplyr::select(n_parcelle, n_carre, n_arbre, "LT_mean", "Branch_diameter", "Bark_thickness", "Bark_infra_density", "Wood_infra_density", LMDC, SLA, Chloro_content, Area_exclude)
 ```
 
 
@@ -86,7 +86,7 @@ Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals
 ## environment fromparacou SIG 
 ```{r}
 environment <-read.csv(file.path(path, "environment\\Paracou\\environmenttest.csv"),header = T, dec = ",", sep=";")%>% 
-  select(-morphotype, -X, -circonf, -espece, -n_essence, -Famille, -Genre, -code_vivant, -code_mesure, -idTaxon, -campagne, -X.1)
+  dplyr::select(-morphotype, -X, -circonf, -espece, -n_essence, -Famille, -Genre, -code_vivant, -code_mesure, -idTaxon, -campagne, -X.1)
 
 
 environment_trait <- Trait_mean_transform_final %>%  inner_join(environment, by = c("n_parcelle", "n_carre", "n_arbre"))
@@ -107,7 +107,7 @@ So 14-2-459 is present in environment data base
 G_neighbour <- read.csv(file.path(path, "Full_Gneighbour.csv"),header = T, dec = ".", sep=",")
 
 G_neighbour <- G_neighbour %>% 
-  select(PointWeight, nNeighbors, GNeighbors, n_parcelle, n_carre, n_arbre )
+  dplyr::select(PointWeight, nNeighbors, GNeighbors, n_parcelle, n_carre, n_arbre )
 
 environment_trait2 <- G_neighbour %>% 
   inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
@@ -125,7 +125,7 @@ So here 4 individuals are missing from the full corrected  individual count data
 environment_trait2 <- environment_trait2 %>% 
   mutate(Competition = ((GNeighbors/ nNeighbors)/PointWeight))
 
-#write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\environment_trait2.csv" )
+#write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment_trait2.csv" )
 ```
 
 ### dcm 
