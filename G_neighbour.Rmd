@@ -77,7 +77,7 @@ data selection parcelle by parcelle because spatstat window is specific to the p
 Paracoutest <- paracoutree %>% 
   filter(code_vivant ==1) %>% 
   mutate(species = paste(Genre, Espece, sep="_")) %>% 
-  select(n_parcelle, n_carre, n_arbre, X, Y, circ_corr, species) %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre, X, Y, circ_corr, species) %>% 
   filter(n_parcelle == 16) %>% 
   mutate( PointWeight = (circ_corr)^2/(4*pi)) %>% 
   mutate( PointName = paste(n_parcelle, n_carre, n_arbre, sep="_")) %>%
