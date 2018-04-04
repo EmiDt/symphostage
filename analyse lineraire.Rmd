@@ -20,13 +20,13 @@ library(ade4)
 library(vegan)
 library(MASS)
 library(ellipse)
-
+path <- "C:\\Users\\emduc\\Desktop\\"
+# path <- "./data/" # To be used on sylvain local machine
 ```
 
 # data
 
 ```{r}
-path <- "C:\\Users\\emduc\\Desktop\\"
 trait <- read.csv(file.path(path, "environment_trait2.csv"),header = T, dec = ".", sep=",")
 
 topo <- read.csv(file.path(path, "topo_sympho.csv"),header = T, dec = ".", sep=";") 

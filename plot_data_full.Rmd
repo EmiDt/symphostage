@@ -17,13 +17,13 @@ library("gridExtra")
 library("cowplot")
 library(FactoMineR)
 library(factoextra)
+# path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+path <- "./data/" # To be used on sylvain local machine
 ```
 
 # data upload
  
 ```{r}
-path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
-# path <- "./data/" # To be used on sylvain local machine
 Traits_brut_data <- read.csv(file.path(path, "Full_traits_data.csv"),header = T, dec = ",", sep=";")
 ```
 

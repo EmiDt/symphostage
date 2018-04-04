@@ -13,6 +13,8 @@ library("tidyverse")
 library("pingr")
 library("spatstat")
 library("devtools")
+path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+# path <- "./data/" # To be used on sylvain local machine
 ```
 
 
@@ -34,9 +36,9 @@ library("devtools")
 # summary(DataParacou$n_parcelle)
 # save(paracoutree, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\paracou_data\\paracoutree.RData")
 
-load(file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\paracou_data\\paracoutree.RData") 
+load(file.path(path, "paracou_data", "paracoutree.RData")) 
 
-symphonia_stage <- read.csv("C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_data.csv",header = T, dec = ",", sep=";")%>%  group_by(n_parcelle, n_carre, n_arbre) %>% 
+symphonia_stage <- read.csv(file.path(path, "Full_traits_data.csv"),header = T, dec = ",", sep=";")%>%  group_by(n_parcelle, n_carre, n_arbre) %>% 
   summarize() %>% 
   mutate(ID = paste(n_parcelle, n_carre, n_arbre, sep="_"))
 ```
@@ -201,7 +203,7 @@ P_Gneighbour <- P_Gneighbour %>%
 
 Full_Gneighbour <- rbind(G_neighbour1,G_neighbour10, G_neighbour2, G_neighbour3, G_neighbour4, G_neighbour5, G_neighbour6,G_neighbour7, G_neighbour8, G_neighbour9, G_neighbour11, G_neighbour12, G_neighbour13, G_neighbour14, G_neighbour15, G_neighbour16)
 
-write.csv(Full_Gneighbour, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\G_neighbour_data\\Full_Gneighbour.csv")
+# write.csv(Full_Gneighbour, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\G_neighbour_data\\Full_Gneighbour.csv")
 
 ```
 
