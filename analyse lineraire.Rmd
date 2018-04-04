@@ -185,6 +185,15 @@ data_standar$Dawkins <- trait$Dawkins
 
 
 ## SLA
+###  test normality
+```{r SLA normality}
+shapiro.test(data_standar$SLA) ;shapiro.test(trait$SLA); shapiro.test(log(trait$SLA));
+qqnorm(trait$SLA,datax=TRUE)
+abline(qqline(trait$SLA,datax=TRUE))
+hist((trait$SLA))
+```
+
+Accordindg to shapiro test SLA distribution is not normal even if with QQ plot it seems to be normal. Also log transformation does not improve normality assymption whereas it seems to work in some papers like Lajoie & Vellen 2015. 
 
 ### step both
 
@@ -202,6 +211,8 @@ data_standar$Dawkins <- trait$Dawkins
 SLA_model <-  lm(SLA~., data= data_standar)
 #step(object = SLA_model, direction = "both")
 
+lm(formula = log(SLA) ~ d_creek + LT_mean + Chloro_content + LMDC + 
+    Dawkins, data = data_standar) %>% summary
 lm(formula = SLA ~ d_creek + LT_mean + Chloro_content + LMDC + 
     Dawkins, data = data_standar) %>% summary
 
@@ -234,6 +245,14 @@ with the backwar analysis we have the same result than "both" step method. th ad
 
 
 ## LMDC
+
+```{r}
+shapiro.test(data_standar$LMDC) ;shapiro.test(trait$LMDC); shapiro.test(log(trait$LMDC))
+qqnorm(trait$LMDC,datax=TRUE) 
+abline(qqline(trait$LMDC,datax=TRUE))
+```
+
+
 ### step both
 
 ```{r}
@@ -273,6 +292,18 @@ lm(formula = LMDC ~ LT_mean + Chloro_content + d_creek + wetness +
 Backward method is better Adjusted R-squared:  0.3919 
 
 ## LT
+
+###normality test 
+
+```{r}
+shapiro.test(data_standar$LT_mean) ;shapiro.test(trait$LT_mean); 
+shapiro.test(log(trait$LT_mean))
+hist(log(trait$LT_mean))
+qqnorm(trait$LT_mean,datax=TRUE)
+abline(qqline(trait$LT_mean,datax=TRUE))
+```
+
+
 ### step both
 
 
@@ -311,6 +342,16 @@ Once again forward method does not work well and result from both method is the 
 
 ## chloro content
 using data standar with SLA value because chlorocontent is not correlated or a component of SLA
+### normality test 
+
+```{r normality chloro}
+shapiro.test(data_standar$Chloro_content) ;shapiro.test(trait$Chloro_content); 
+shapiro.test(log(trait$Chloro_content))
+hist(log(trait$Chloro_content))
+qqnorm(trait$Chloro_content,datax=TRUE)
+abline(qqline(trait$Chloro_content,datax=TRUE))
+```
+
 
 ### step both
 
@@ -319,15 +360,24 @@ using data standar with SLA value because chlorocontent is not correlated or a c
 Chloro_content_model <- lm(Chloro_content~., data=data_standar)
 step(object = Chloro_content_model, direction = "both")
 
-lm(formula = Chloro_content ~ wetness + Competition + aspect + 
-    LT_mean + LMDC + SLA, data = data_standar) %>%  summary()
+truc <- lm(formula = Chloro_content ~ wetness + Competition + aspect + 
+    LT_mean + LMDC + SLA, data = data_standar) %>%  summary() 
+
+plot(lm(formula = Chloro_content ~ wetness + Competition + aspect + 
+    LT_mean + LMDC + SLA, data = data_standar))
+
+
 
  lm(formula = Chloro_content ~ Competition * aspect *  LMDC * SLA+ LT_mean, data = data_standar) %>%  summary()
+ 
+ 
 
 ```
 aspect is selected by step function but it is not significant when lm is applied alone ..
 
 Multiplicative form give almost the same adjusted R-squared but there are just a few significant variables and interactions. 
+
+
 ### step backward
 ```{r}
 step(object = Chloro_content_model, direction = "backward")
