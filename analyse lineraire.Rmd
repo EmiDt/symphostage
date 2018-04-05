@@ -1,5 +1,5 @@
 ---
-title: linear model analysis 
+title: linear_model_analysis 
 output: 
   html_document:
     toc: yes
@@ -53,7 +53,7 @@ trait_standar <- trait %>%
   mutate(LT_mean = (LT_mean/ (mean(trait$LT_mean)))) %>% 
   mutate(Chloro_content = (Chloro_content/ (mean(trait$Chloro_content)))) %>% 
    mutate(SLA= (SLA/ (mean(trait$SLA)))) %>% 
-  mutate((Area_exclude = (Area_exclude/mean(Area_exclude))))
+  mutate((Area = (Area_exclude/mean(Area_exclude))))
 
 environment_standar <- trait %>% 
   dplyr::select(n_parcelle, n_carre, n_arbre,wetness,Competition,   d_creek, aspect, curvature, TRI, diameter,dem,slope, TypeTopoEN, Dawkins, d_log_gap, Area_exclude) %>% 
@@ -74,14 +74,14 @@ ranging or z-score methods are other solution espacially for ordination procedur
 ## descriptors selection
 
 
-
+function to print coeficient of correlation on a pairs plot with an significant test. Here we choose to use Spearman correlation because every environmental data are not independant. 
 
 ```{r}
 panel.cor <- function(x, y, digits=2, prefix="", cex.cor) {
   usr <- par("usr")
   on.exit(par(usr))
   par(usr = c(0, 1, 0, 1))
-  r <- abs(cor(x, y, use = "complete.obs"))
+  r <- abs(cor(x, y, use = "complete.obs", method = "spearman"))
   txt <- format(c(r, 0.123456789), digits = digits)[1]
   txt <- paste(prefix, txt, sep = "")
   if (missing(cex.cor)) cex <- 0.8 / strwidth(txt)
@@ -98,9 +98,10 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor) {
   text(.8, .8, Signif, cex = cex, col = 2)
 }
 pairs(environment_standar[,4:10], lower.panel = panel.smooth, upper.panel = panel.cor)
+
 ```
 
-A we can see on the pairs plot TRI and slope are highly correlated so we need to choose one to do not influence RDA, slope seems to be easier to interprete. Also diameter,  Competition index are really correlated, here competition bring a special information that can not be removed and diameter is in a way summarised in the competition index because it is based on the basal area that is calculated with DBH. 
+A we can see on the plot that TRI and wetness are highly correlated so we need to choose one wetness seems bring more ecological information thant TRI it will be selected. Also diameter,  Competition index are really correlated, here competition bring a special information that can not be removed and diameter is in a way summarised in the competition index because it is based on the basal area that is calculated with DBH. 
 
 ```{r}
 environment_standar <- environment_standar %>% 
@@ -128,7 +129,7 @@ Finally Dawkins to competition don't know, it would be better with d_gap because
 environment_standar <- environment_standar %>% 
   dplyr::select(-d_log_gap, -TypeTopoEN, -Dawkins)
 
-pairs(environment_standar[,4:8], lower.panel = panel.smooth, upper.panel = panel.cor)
+pairs(environment_standar[,4:8], lower.panel = panel.smooth, upper.panel = panel.cor) %>% summary
 ```
 
 
@@ -233,7 +234,7 @@ Accordindg to shapiro test SLA distribution is not normal even if with QQ plot i
 # lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
 #     Dawkins + d_log_gap, data = trait) %>% summary() #both 
 data_standar3 <- data_standar %>% 
-  dplyr::select(-Area_exclude)
+  dplyr::select(-Area_exclude, -LMDC, -LT_mean)
 
 SLA_model <-  lm(SLA~., data= data_standar3)
 step(object = SLA_model, direction = "both")
@@ -273,10 +274,12 @@ with the backwar analysis we have the same result than "both" step method. th ad
 
 ## LMDC
 ### normality test
+
 ```{r}
 shapiro.test(data_standar$LMDC) ;shapiro.test(trait$LMDC); shapiro.test(log(trait$LMDC))
 qqnorm(trait$LMDC,datax=TRUE) 
 abline(qqline(trait$LMDC,datax=TRUE))
+hist(trait$LMC)
 ```
 
 
@@ -341,6 +344,7 @@ lm(formula = LT_mean ~ Competition + curvature + Area_exclude +
 ```
 the multiplicative form does not show any interesting interaction between variable and have a smaller adjusted R-squared : 0.2582 against 0.267
 ### step backward
+
 ```{r}
 step(object = LT_mean_model, direction = "backward")
 
@@ -349,6 +353,7 @@ lm(formula = LT_mean ~ wetness + diameter + dem + TypeTopoEN +
 ```
 
 ### step forward
+
 
 ```{r}
 step(object = LT_mean_model, direction = "forward")
