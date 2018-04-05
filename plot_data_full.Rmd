@@ -74,8 +74,8 @@ Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals
   mutate(Dawkins = gsub("B","",Dawkins)) %>% 
   mutate(Dawkins = gsub("C","",Dawkins)) %>% 
   mutate(Dawkins = as.factor(as.integer(Dawkins))) %>% 
-  filter( SLA < 200) %>% 
-  filter(Dawkins != "") %>% 
+ # filter( SLA < 200) %>% 
+  #filter(Dawkins != "") %>% 
   mutate( basal_area = (pi* (diameter)^2)/4)
 
 #write.csv2(Trait_mean_transform_final , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_transform.csv")
@@ -90,7 +90,10 @@ environment <-read.csv(file.path(path, "environment\\Paracou\\environmenttest.cs
 
 
 environment_trait <- Trait_mean_transform_final %>%  inner_join(environment, by = c("n_parcelle", "n_carre", "n_arbre"))
+
+
 ```
+
 
 merging environmental data with transformed trait data, only 398 are in commun so one individual is missing lets found which one 
 
