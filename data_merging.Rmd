@@ -1,6 +1,9 @@
 ---
 title: "merging_data"
-output: html_document
+output: 
+  html_document: 
+    highlight: pygments
+    theme: cosmo
 ---
 ```{r}
 rm(list = ls())

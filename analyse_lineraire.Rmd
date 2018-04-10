@@ -2,14 +2,14 @@
 title: linear_model_analysis 
 output: 
   html_document: 
-    highlight: tango
-    theme: yeti
+    highlight: pygments
+    theme: journal
     toc: yes
 ---
 
 ```{r }
 rm(list = ls())
-knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
+knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F, echo=FALSE)
 library(dplyr)
 library(magrittr)
 library(ggplot2)
@@ -324,11 +324,11 @@ Three new variable are selected and espacially their interaction with competitio
 Anova Type I sum of squares are “sequential.”  In essence the factors are tested in the order they are listed in the model.  Type III are “partial.”  In essence, every term in the model is tested in light of every other term in the model.  That means that main effects are tested in light of interaction terms as well as in light of other main effects.  Type II are similar to Type III, except that they preserve the principle of marginality.  This means that main factors are tested in light of one another, but not in light of the interaction term.
 
 ```{r}
- Anova(SLA_model, type = "III")
+ # Anova(SLA_model, type = "III")
 ```
 
-
-```{r}
+## prediction 
+```{r SLA predict}
 data_standar3$predy = predict(SLA_model)
 
 plot(predy ~ SLA,
@@ -340,7 +340,7 @@ plot(predy ~ SLA,
 abline(0,1, col="blue", lwd=2)
 ```
 
-
+Linear model is maybe not the best.
 ## LMDC
 ### normality test
 
@@ -367,7 +367,7 @@ lm(formula = LMDC ~ wetness + Competition, data = data_standar2) %>% summary
 ```
 
 
-```{r}
+```{r echo=FALSE}
 # LMDC_model <- lm(LMDC~wetness * Competition * d_creek  * curvature *
 #     d_gap, data=data_standar2)
 # step(object = LMDC_model, direction = "backward", k= log(n))
