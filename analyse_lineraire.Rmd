@@ -1,9 +1,10 @@
 ---
 title: linear_model_analysis 
 output: 
-  html_document:
+  html_document: 
+    highlight: tango
+    theme: yeti
     toc: yes
-    toc_float: yes
 ---
 
 ```{r }
@@ -30,141 +31,146 @@ path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
 # path <- "./data/" # To be used on sylvain local machine
 ```
 
-# data
+# I- data
 
 ```{r}
-trait <- read.csv(file.path(path, "environment_trait2.csv"),header = T, dec = ".", sep=",") %>% 
-  dplyr::select(-PointWeight, -nNeighbors, -GNeighbors, -wood_presence, -NomForet, -idArbre, -Y, -X, -Branch_diameter, -Bark_thickness, -Bark_infra_density, -Wood_infra_density)
 
-topo <- read.csv(file.path(path, "topo_sympho.csv"),header = T, dec = ".", sep=";") 
-
-topo <- topo %>% 
-  dplyr::filter(TypeTopoEN !="")  
-
-trait1 <- trait  %>% 
-  mutate(Dawkins = as.factor(as.character(Dawkins))) %>% 
-  full_join(topo) %>% 
-  dplyr::select(n_parcelle, n_carre, n_arbre,SLA, LT_mean, Chloro_content, LMDC,Area_exclude , d_creek, wetness, TypeTopoEN, Dawkins, dem, slope, TRI, aspect, curvature, d_log_gap, Competition, diameter) %>% 
-  dplyr::filter(!is.na(TypeTopoEN))
+environment_trait<- read.csv(file.path(path, "environment_trait.csv"),header = T, dec = ".", sep=",")
 ```
 In the following text, the terms descriptors and varaible will be used interchangeably. These refereing to the attributes (not in the functional way), or character used to describe or compoare the object of the study.
 
-## spotting outliers 
+## 1- spotting outliers 
 
 
 ```{r}
 
-trait <- trait %>% 
-  mutate(ID= paste(n_parcelle, n_carre, n_arbre, sep="_"))
+environment_trait <- environment_trait %>% 
+  mutate(ID= as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_")))
 
-outliers_name <- trait$ID
+outliers_name <- environment_trait$ID
 ```
-###SLA
-```{r}
-boxplot.with.outlier.label(trait$SLA,outliers_name)%$% 
-data.frame(ID = outlier_df$label_name)  %>%  inner_join(trait)
-
-
+### a) SLA
+```{r }
+boxplot.with.outlier.label(environment_trait$SLA,outliers_name)%$% 
+data.frame(ID = outlier_df$label_name)  %>%  inner_join(environment_trait, by = "ID")
 ```
 So there is four outliersaccording to boxplot analysis, 11-1-742 and 11-4-983 have really abberrant value whereas 13-2-73 and 15-1-198 can be consider are maximum range value for SLA. 
 
 ```{r}
-trait <- trait %>% 
+environment_trait <- environment_trait %>% 
   filter(SLA < 400)
 
 ```
 
-###LMDC
+### b)LMDC
 ```{r}
-outliers_name <- trait$ID
-boxplot.with.outlier.label(trait$LMDC,outliers_name) %$% 
-data.frame(ID =outlier_df$label_name) %>%  inner_join(trait) 
+outliers_name <- environment_trait$ID
+boxplot.with.outlier.label(environment_trait$LMDC,outliers_name) %$% 
+data.frame(ID =outlier_df$label_name) %>%  inner_join(environment_trait, by = "ID") 
 
 
 ```
 So there are 7 value that are consider as outliers, here we decide to remove the individuals 
 ```{r}
-trait <- trait %>% 
+environment_trait <- environment_trait %>% 
   filter(!(LMDC < 0.25 |LMDC > 0.45))
 ```
 
-### LT_mean
+### c) LT_mean
 
 ```{r}
-outliers_name <- trait$ID
-boxplot.with.outlier.label(trait$LT_mean,outliers_name)
+outliers_name <- environment_trait$ID
+boxplot.with.outlier.label(environment_trait$LT_mean,outliers_name)
 
 ```
 FOr Lt_mean there is no outliers ! 
 
-### Chloro content
+### d) Chloro content
 ```{r}
-boxplot.with.outlier.label(trait$Chloro_content,outliers_name)%$% 
-data.frame(ID= outlier_df$label_name) %>%  inner_join(trait)
+boxplot.with.outlier.label(environment_trait$Chloro_content,outliers_name)%$% 
+data.frame(ID= outlier_df$label_name) %>%  inner_join(environment_trait, by = "ID")
 ```
 
 there is one outlier so we removed it 
 
 ```{r}
-trait <- trait %>% 
+environment_trait <- environment_trait %>% 
   filter(! Chloro_content < 40.5)
 ```
 
-### Area 
+### e)  Area 
 
 ```{r}
-outliers_name <- trait$ID
-boxplot.with.outlier.label(trait$Area_exclude,outliers_name)%$% 
-data.frame(ID = outlier_df$label_name)%>%  inner_join(trait) 
+outliers_name <- environment_trait$ID
+boxplot.with.outlier.label(environment_trait$Area_exclude,outliers_name)%$% 
+data.frame(ID = outlier_df$label_name)%>%  inner_join(environment_trait, by = "ID") 
 ```
 
 Normaly when no individual are removed after outlier spotting there are 20 individuals which are consider as Area outlier, here it is more difficult to know if we need to remove it becaus some individual have extramly big leaves .. but maybe it is due to an ontogenic effect and so it would be better to remove them.
 
 ```{r}
-trait <- trait %>% 
+environment_trait <- environment_trait %>% 
   filter(!Area_exclude > 54)
 ```
 
 
-## standardisation 
+
+## 2- standardisation 
 
 all variable have been reduce and centered by z-score method to have demensionless variables.
   
-```{r}
+```{r standar trait}
 
-trait_standar <- trait %>%
+trait_standar <- environment_trait %>%
   dplyr::select(n_parcelle, n_carre, n_arbre,LT_mean, Chloro_content, LMDC, SLA, Area_exclude) %>% 
   
-  mutate(LT_mean = (LT_mean-(mean(trait$LT_mean))/sd(trait$LT_mean))) %>% 
+  mutate(LT_mean = (LT_mean-(mean(environment_trait$LT_mean))/sd(environment_trait$LT_mean))) %>% 
   
-  mutate(Chloro_content = (Chloro_content-(mean(trait$Chloro_content))/sd(trait$Chloro_content))) %>% 
+  mutate(Chloro_content = (Chloro_content-(mean(environment_trait$Chloro_content))/sd(environment_trait$Chloro_content))) %>% 
   
-  mutate(SLA= (SLA - (mean(trait$SLA))/sd(trait$SLA))) %>% 
+  mutate(SLA= (SLA - (mean(environment_trait$SLA))/sd(environment_trait$SLA))) %>% 
   
-  mutate(Area = (Area_exclude-(Area_exclude-mean(trait$Area_exclude))/ sd(trait$Area_exclude))) %>%
+  mutate(Area = (Area_exclude-(Area_exclude-mean(environment_trait$Area_exclude))/ sd(environment_trait$Area_exclude))) %>%
   
   dplyr::select(-Area_exclude)
+```
 
-environment_standar <- trait %>% 
-  dplyr::select(n_parcelle, n_carre, n_arbre,wetness,Competition,   d_creek, aspect, curvature, TRI, diameter,dem,slope, Dawkins, d_log_gap) %>% 
-  mutate( diameter= (diameter- (mean(trait$diameter))/sd(trait$diameter))) %>% 
-  mutate( d_creek= (d_creek- (mean(trait$d_creek))/sd(trait$d_creek))) %>%
-  mutate( wetness= (wetness-(mean(trait$wetness))/sd(trait$wetness))) %>% 
-  mutate( dem= (dem-(mean(trait$dem))/sd(trait$dem))) %>% 
-  mutate( slope= (slope-(mean(trait$slope))/sd(trait$slope))) %>%
-  mutate( TRI= (TRI-(mean(trait$TRI))/sd(trait$TRI))) %>%
-  mutate( curvature= (curvature-(mean(trait$curvature))/sd(trait$curvature))) %>%
-  mutate( aspect= (aspect-(mean(trait$aspect))/sd(trait$aspect))) %>%
-  mutate( Competition= (Competition-(mean(trait$Competition))/sd(trait$Competition))) %>% 
-mutate( d_log_gap= (d_log_gap-(mean(trait$d_log_gap))/sd(trait$d_log_gap)))
-#, TypeTopoEN
-
+```{r standar envi }
+environment_standar <- environment_trait %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre,wetness,Competition,   d_creek, aspect, curvature, TRI, diameter,dem,slope, Dawkins, d_log_gap, d_gap) %>% 
+  mutate( diameter= (diameter- (mean(environment_trait$diameter))/sd(environment_trait$diameter))) %>% 
+  mutate( d_creek= (d_creek- (mean(environment_trait$d_creek))/sd(environment_trait$d_creek))) %>%
+  mutate( wetness= (wetness-(mean(environment_trait$wetness))/sd(environment_trait$wetness))) %>% 
+  mutate( dem= (dem-(mean(environment_trait$dem))/sd(environment_trait$dem))) %>% 
+  mutate( slope= (slope-(mean(environment_trait$slope))/sd(environment_trait$slope))) %>%
+  mutate( TRI= (TRI-(mean(environment_trait$TRI))/sd(environment_trait$TRI))) %>%
+  mutate( curvature= (curvature-(mean(environment_trait$curvature))/sd(environment_trait$curvature))) %>%
+  mutate( aspect= (aspect-(mean(environment_trait$aspect))/sd(environment_trait$aspect))) %>%
+  mutate( Competition= (Competition-(mean(environment_trait$Competition))/sd(environment_trait$Competition))) %>% 
+mutate( d_log_gap= (d_log_gap-(mean(environment_trait$d_log_gap))/sd(environment_trait$d_log_gap))) %>% 
+  mutate( d_gap= (d_gap-(mean(environment_trait$d_gap))/sd(environment_trait$d_gap)))
 ```
 
 
+## 3- descriptors selection
+### a) dcm elimination 
+So here we have mean heigh value in the 1m cell area that correspond to the focal tree coordinate. As we know there is an allometry from DBH to tree height and here with this plot we try to validate if dcm value for our tree are aberrant or not. 
 
-## descriptors selection
+```{r eval =FALSE}
+plot(environment_trait$diameter, environment_trait$dcm)
+abline((lm(environment_trait$dcm~environment_trait$diameter)), col="red")
+```
 
+There is a small positiv tendency, but not string as it should be expected. Also there is a lot of individual that have an estimate height around 30-40 with only 10-20 diameter and those value do not respect buckling/flambage biological constrains. 
+SO it might be better to remove this variable from our analysis. 
+
+```{r eval= F}
+environment_trait <- environment_trait %>% 
+  dplyr::select(-dcm)
+
+```
+
+### b) checking colinnearity 
 
 function to print coeficient of correlation on a pairs plot with an significant test. Here we choose to use Spearman correlation because every environmental data are not independant. 
 
@@ -176,7 +182,7 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor) {
   r <- abs(cor(x, y, use = "complete.obs", method = "spearman"))
   txt <- format(c(r, 0.123456789), digits = digits)[1]
   txt <- paste(prefix, txt, sep = "")
-  if (missing(cex.cor)) cex <- 0.8 / strwidth(txt)
+  if (missing(cex.cor)) cex <- 0.7 / strwidth(txt)
 
   test <- cor.test(x, y)
   # borrowed from printCoefmat
@@ -189,8 +195,11 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor) {
   text(0.5, 0.5, txt, cex = cex * r)
   text(.8, .8, Signif, cex = cex, col = 2)
 }
-pairs(environment_standar[,4:10], lower.panel = panel.smooth, upper.panel = panel.cor)
+```
 
+
+```{r}
+pairs(environment_standar[,4:10], lower.panel = panel.smooth, upper.panel = panel.cor)
 ```
 
 A we can see on the plot that TRI and wetness are highly correlated so we need to choose one wetness seems bring more ecological information thant TRI it will be selected. Also diameter,  Competition index are really correlated, here competition bring a special information that can not be removed and diameter is in a way summarised in the competition index because it is based on the basal area that is calculated with DBH. 
@@ -222,21 +231,15 @@ Finally Dawkins to competition don't know, it would be better with d_gap because
 environment_standar <- environment_standar %>% 
   dplyr::select(-d_log_gap,  -Dawkins)
 
-pairs(environment_standar[,4:8], lower.panel = panel.smooth, upper.panel = panel.cor) %>% summary
+pairs(environment_standar[,4:9], lower.panel = panel.smooth, upper.panel = panel.cor) 
 ```
+### c) aspect elimination 
 
+Aspect variable is define as the aspect of each raster celle (here 1m²) grouped into compass direction (north; south etc.). 
+Does it can really influence our functionnal trait espacially for a 1m² cell, I am not sur but it is sometimes selected by step function and more preciesly for it interaction with competition and wetness.
 
-```{r}
-library(faraway)
-sort(vif(environment_standar) )
-```
-
-Borcard et al. 2011: 175 argue that in the case of RDA, VIFs > 10 should be avoided, so here everything is right. 
-
-
-
-## descriptors distribution 
-### environment
+## 4- variables distribution 
+### a) environment descriptor 
 ```{r}
 wetness <- ggplot(environment_standar, aes((wetness)))+
   geom_histogram(na.rm = T)
@@ -247,14 +250,19 @@ competition <- ggplot(environment_standar, aes((Competition)))+
 d_creek <- ggplot(environment_standar, aes((d_creek)))+
   geom_histogram(na.rm = T)
 
-aspect <- ggplot(environment_standar, aes((aspect)))+
-  geom_histogram(na.rm = T)
-
 curvature <- ggplot(environment_standar, aes((curvature)))+
   geom_histogram(na.rm = T)
 
-plot_grid(wetness, competition, d_creek, aspect,curvature   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 3)
+d_gap<- ggplot(environment_standar, aes((d_gap)))+
+  geom_histogram(na.rm = T)
+
+plot_grid(wetness, competition, d_creek,curvature  ,d_gap , labels=c("A", "B","C", "D"), ncol = 2, nrow = 3)
 ```
+
+We can see that d_creek, competition have right skewed distribution that can be easily transform with log function or square root.
+
+
+
 
 # lm 
 
@@ -263,15 +271,16 @@ Using standardized data and only uncorrelated data to avoid singularities error 
 
 
 ```{r}
-data_standar <- full_join(environment_standar,trait_standar) %>%
+data_standar <- full_join(environment_standar,trait_standar, by = c("n_parcelle", "n_carre", "n_arbre")) %>%
   
   dplyr::select(-n_parcelle, -n_carre, -n_arbre) 
 
-data_standar$Dawkins <- trait$Dawkins
+n <- nrow(data_standar)
 ```
 
 ## SLA
 ###  test normality
+
 
 ```{r SLA normality}
 qqnorm(sqrt(trait_standar$SLA),datax=TRUE)
@@ -282,51 +291,58 @@ shapiro.test(trait_standar$SLA)
 
 Accordindg to shapiro test SLA distribution is not normal even if with QQ plot it seems to be normal. Also log transformation does not improve normality assumption whereas it seems to work in some papers like Lajoie & Vellen 2015 or log10 like in Vajardero and Piper 2010 or Wright et al 2007. And other transfromation for left-skewed distribution also are not efficient. 
 
-### step both
+### step 
 
+Here we are going to use step function to choose between our descritors, with the BIC criterion that is stronger than AIC. 
 
 ```{r}
-
 data_standar3 <- data_standar %>% 
-  dplyr::select(-Area, -LMDC, -LT_mean)
+  dplyr::select(-Area, -LMDC, -LT_mean, -Chloro_content)
 
-SLA_model <-  lm(SLA~., data= data_standar3)
-step(object = SLA_model, direction = "both")
+SLA_model <- lm(SLA~ wetness + Competition + d_creek + curvature + 
+    d_gap, data= data_standar3)
 
-lm(formula = SLA ~ Competition + d_creek + Chloro_content + Dawkins, 
-    data = data_standar3) %>% summary
+# stats::step(object = SLA_model, direction = "backward", k= log(n))
 
-# lm(formula = SLA ~ d_creek * Dawkins  * LT_mean +
-#     Chloro_content * LMDC, data = data_standar3) %>% summary
+lm(formula = SLA ~ Competition, data = data_standar3) %>% summary
 ```
 
+Only one descriptor is selected by step : competition that provide an explanation of 0.303 of the total variance of SLA. 
+Now we test  a multiplicative form of our full model, still with the step function. 
+```{r}
+SLA_model <-  lm(SLA~ wetness * Competition * d_creek  * curvature * 
+    d_gap, data= data_standar3)
+# stats::step(object = SLA_model, direction = "backward", k= log(n))
 
-here multiplicative model with the same pre-selected variables from step have a better adjusted Rsquarred than the additive one respectiveky 0.7152 and 0.7066 butI don't think that the difference is really significant. 
+ 
+lm(formula = SLA ~ Competition, data = data_standar3) %>%  summary
+```
 
-### step forward
+Three new variable are selected and espacially their interaction with competition are significant. And the adjusted r-squared is now 0.3286.
+
+
+Anova Type I sum of squares are “sequential.”  In essence the factors are tested in the order they are listed in the model.  Type III are “partial.”  In essence, every term in the model is tested in light of every other term in the model.  That means that main effects are tested in light of interaction terms as well as in light of other main effects.  Type II are similar to Type III, except that they preserve the principle of marginality.  This means that main factors are tested in light of one another, but not in light of the interaction term.
 
 ```{r}
-step(object = SLA_model, direction = "forward")
-lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
-    wetness + TypeTopoEN + Dawkins + dem + slope + TRI + aspect + 
-    curvature + d_log_gap, data = trait) %>% summary # forward
+ Anova(SLA_model, type = "III")
 ```
- The forwar analysis seems to do some mistake when we summarize the call formula.. 
 
-### step backward
 
 ```{r}
-step(object = SLA_model, direction = "backward")
-lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
-    Dawkins + d_log_gap, data = trait) %>%  summary# backward
-```
+data_standar3$predy = predict(SLA_model)
 
-with the backwar analysis we have the same result than "both" step method. th adjusted R-squared is 0.7086 , a quite good value 
+plot(predy ~ SLA,
+     data=data_standar3,
+     pch = 16,
+     xlab="Actual response value",
+     ylab="Predicted response value")
+
+abline(0,1, col="blue", lwd=2)
+```
 
 
 ## LMDC
 ### normality test
-
 
 ```{r}
 shapiro.test((trait_standar$LMDC))
@@ -335,50 +351,44 @@ abline(qqline(trait_standar$LMDC,datax=TRUE))
 hist(trait_standar$LMDC)
 ```
 
-
-### step both
+### step 
 
 ```{r}
  data_standar2<- data_standar %>%
-  dplyr::select(-SLA) 
+  dplyr::select(-SLA, -LT_mean, -Chloro_content, -Area) 
   
-LMDC_model <- lm(LMDC~., data=data_standar2)
-step(object = LMDC_model, direction = "both")
+# LMDC_model <- lm(LMDC~wetness + Competition + d_creek  + curvature +
+#     d_gap, data=data_standar2)
+# step(object = LMDC_model, direction = "backward", k= log(n))
 
-lm(formula = LMDC ~ Competition + curvature + Area_exclude + 
-    Chloro_content + Dawkins, data = data_standar2) %>% summary
+lm(formula = LMDC ~ wetness + Competition, data = data_standar2) %>% summary
 
-   # lm(formula = LMDC ~ Competition *curvature* Area_exclude * Chloro_content* Dawkins, data = data_standar2 ) %>%  summary()
-```
-here with the selected variable from step put in an multiplicative model there is no significant interaction and the adjusted R-squared is  0.4173 whereas with the additive model the adjusted R-squared is   0.4294 . So as there is no significant interaction the additive model will be selected. 
-
-### step backwar
-
-```{r}
-#step(object = LMDC_model, direction = "backward")
 
 ```
-
-### step forward
 
 
 ```{r}
-#step(object = LMDC_model, direction = "forward")
+# LMDC_model <- lm(LMDC~wetness * Competition * d_creek  * curvature *
+#     d_gap, data=data_standar2)
+# step(object = LMDC_model, direction = "backward", k= log(n))
 
+lm(formula = LMDC ~ wetness + Competition, data = data_standar2) %>% summary()
 ```
 
-Backward method is better Adjusted R-squared:  0.3919 
+Here step selection with multiplicative or additive model selec exactly the same variable wetness and competition. Both model give the same adjusted r squared 0.2464. 
+
 
 ## LT
 
 ###normality test 
 
+
 ```{r}
-ks.test(data_standar$LT_mean, "pnorm")
+# ks.test(data_standar$LT_mean, "pnorm")
 shapiro.test(data_standar$LT_mean) 
 hist((data_standar$LT_mean))
-qqnorm(trait$LT_mean,datax=TRUE)
-abline(qqline(trait$LT_mean,datax=TRUE))
+qqnorm(environment_trait$LT_mean,datax=TRUE)
+abline(qqline(environment_trait$LT_mean,datax=TRUE))
 ```
 
 
@@ -386,112 +396,66 @@ abline(qqline(trait$LT_mean,datax=TRUE))
 
 
 ```{r}
-LT_mean_model <- lm(LT_mean~., data=data_standar2)
-step(object = LT_mean_model, direction = "both")
+data_standar1<- data_standar %>%
+  dplyr::select(-SLA, -LMDC, -Chloro_content, -Area) 
 
-lm(formula = LT_mean ~ Competition + curvature + Area_exclude + 
-    Dawkins, data = data_standar2) %>%  summary
+# LT_mean_model <- lm(LT_mean~wetness + Competition + d_creek  + curvature + 
+#  d_gap, data=data_standar1)
+# step(object = LT_mean_model, direction = "backward", k= log(n))
 
- # lm(formula = LT_mean ~ curvature * 
- #     Dawkins * Area_exclude* Competition , data = data_standar2) %>%  summary()
+lm(formula = LT_mean ~ wetness + Competition, data = data_standar1) %>%  summary
 ```
-the multiplicative form does not show any interesting interaction between variable and have a smaller adjusted R-squared : 0.2582 against 0.267
-### step backward
+
+Here once again only two descriptors have been selected competition and wetness but both does not explain alot of variance in LT_ mean , Adjusted R-squared:  0.191 
 
 ```{r}
-step(object = LT_mean_model, direction = "backward")
+LT_mean_model <- lm(LT_mean~wetness * Competition * d_creek  * curvature *
+ d_gap, data=data_standar1)
+step(object = LT_mean_model, direction = "backward", k= log(n))
 
-lm(formula = LT_mean ~ wetness + diameter + dem + TypeTopoEN + 
-    Dawkins + Chloro_content, data = data_standar2) %>% summary()
+lm(formula = LT_mean ~ wetness + Competition + d_creek + wetness:d_creek, 
+    data = data_standar1) %>% summary
 ```
 
-### step forward
-
-
-```{r}
-step(object = LT_mean_model, direction = "forward")
-
-lm(formula = LT_mean ~ wetness + Competition + d_creek + aspect + 
-    curvature + TRI + diameter + dem + slope + TypeTopoEN + Dawkins + 
-    d_log_gap + Chloro_content + LMDC, data = data_standar2)%>% summary()
-```
-
-Once again forward method does not work well and result from both method is the same than the backward one. And Adjusted R-squared:  0.3322 
-
+the multiplicative form does not show any interesting interaction between variables and have a smaller adjusted R-squared : 0.2604
 
 
 ## chloro content
-using data standar with SLA value because chlorocontent is not correlated or a component of SLA
+
 ### normality test 
 
 ```{r normality chloro}
 shapiro.test(data_standar$Chloro_content) 
 hist(data_standar$Chloro_content)
-qqnorm(trait$Chloro_content,datax=TRUE)
-abline(qqline(trait$Chloro_content,datax=TRUE))
+qqnorm(environment_trait$Chloro_content,datax=TRUE)
+abline(qqline(environment_trait$Chloro_content,datax=TRUE))
 ```
 
 
-### step both
+### step 
 
 ```{r}
+data_standar4<- data_standar %>%
+  dplyr::select(-SLA, -LMDC, -LT_mean, -Area) 
 
-Chloro_content_model <- lm(Chloro_content~., data=data_standar3)
-step(object = Chloro_content_model, direction = "both")
-
-truc <- lm(formula = Chloro_content ~ wetness + Competition + aspect + 
-    LT_mean + LMDC + SLA, data = data_standar3) %>%  summary() 
-
-plot(lm(formula = Chloro_content ~ wetness + Competition + aspect + 
-    LT_mean + LMDC + SLA, data = data_standar3))
-
-
-
- lm(formula = Chloro_content ~ Competition * aspect *  LMDC * SLA+ LT_mean, data = data_standar) %>%  summary()
+ Chloro_model <- lm(Chloro_content~wetness + Competition + d_creek  + curvature + 
+ d_gap, data=data_standar4)
+step(object = Chloro_model, direction = "backward", k= log(n))
  
- 
-
+lm(formula = Chloro_content ~ wetness + Competition, data = data_standar4) %>%  summary
 ```
-aspect is selected by step function but it is not significant when lm is applied alone ..
-
-Multiplicative form give almost the same adjusted R-squared but there are just a few significant variables and interactions. 
-
-
-### step backward
-```{r}
-step(object = Chloro_content_model, direction = "backward")
-
-lm(formula = Chloro_content ~ Competition + aspect + diameter + 
-    dem + LMDC + SLA, data = data_standar) %>% summary()
-```
-Same result as both direction 
-
-### step forward
+Once again only wetness and competition are selected, Adjusted R-squared:  0.1492
 
 ```{r}
-step(object = Chloro_content_model, direction = "forward")
-
-lm(formula = Chloro_content ~ wetness + Competition + d_creek + 
-    aspect + curvature + TRI + diameter + dem + slope + TypeTopoEN + 
-    Dawkins + d_log_gap + LT_mean + LMDC + SLA, data = data_standar)%>% summary()
-```
-
-Once again forward method does not work well and result from both method is the same than the backward one. And Adjusted R-squared:  0.3176
-
-
-
-
-## area
-
-```{r}
-shapiro.test((log(trait_standar$Area)))
-qqnorm(log(trait_standar$Area),datax=TRUE) 
-abline(qqline(log(trait_standar$Area),datax=TRUE))
-hist(log(trait_standar$Area))
+ Chloro_model <- lm(Chloro_content~wetness * Competition * d_creek  * curvature * 
+ d_gap, data=data_standar4)
+step(object = Chloro_model, direction = "backward", k= log(n))
 
 ```
+
 
 #  SMA
+
 "Relationship strength was quantified using correlation r2 and P values; relationship
 sample sizes given in Table 2). Relationship strength was quantified using correlation r2 and P values; relationship
 slopes were described by their standardized major axes
@@ -503,6 +467,7 @@ fitted through the centroid of the data. SMA routines
 were run in a DOS-based computer package, (S)MATR
 (Falster et al., 2003)." Wright et al, 2007
 
+
 ```{r}
 test <- sma(SLA~LMDC, data=data_standar) 
 summary(test)
@@ -513,6 +478,19 @@ abline((lm(data_standar$SLA~data_standar$LMDC)))
 
 
 #rda 
+
+## data checking 
+
+
+
+```{r}
+library(faraway)
+sort(faraway::vif(environment_standar) )
+```
+
+Borcard et al. 2011: 175 argue that in the case of RDA, VIFs > 10 should be avoided, so here everything is right. 
+
+
 ## analysis
 
 If lm part is not run before you need to remove n_parcelle, n_carre and n_arbre from trait_standar and environment_standar
@@ -543,5 +521,9 @@ plot(rda_trait, scaling = 0.5, main = "Triplot RDA scaling 1 - wa scores")
 var.sc <- scores(rda_trait, choices = 1:2, scaling = 1, display = "species")
 
 arrows(0, 0, var.sc[, 1], var.sc[,2], length = 0, lty = 1, col = "red")
+text(scores(rda_trait, display="species", choices=c(1), scaling=1),
+     scores(rda_trait, display="species", choices=c(2), scaling=1, adj = c(-2,2)),
+     labels=rownames(scores(rda_trait, display="species", choices=c(2), scaling=1)),
+     col="red") 
 ```
 

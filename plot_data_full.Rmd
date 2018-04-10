@@ -24,131 +24,15 @@ library(factoextra)
 # data upload
  
 ```{r}
-Traits_brut_data <- read.csv(file.path(path, "Full_traits_data.csv"),header = T, dec = ",", sep=";")
+environment_trait<- read.csv(file.path(path, "environment_trait.csv"),header = T, dec = ".", sep=",")
 ```
-
-Transform mean individuals data because we are looking for inter-individual variation and not intra-individual only for numeric variables here 
-
-```{r}
-Trait_mean_individuals_num <- Traits_brut_data %>% 
-  group_by(n_parcelle, n_carre, n_arbre) %>% 
-  summarize_at(c("Area_exclude", "Area_include", "Fresh_weight", "Dry_Weight", "SPAD_mean", "LT_mean", "Branch_diameter", "Bark_thickness", "Bark_infra_density", "Wood_infra_density" ), mean, na.rm = T)
-```
-
-And here for non numeric information like Dawkins and morphotype
-
-```{r }
-Traits_brut_data <- Traits_brut_data %>% 
-  rename(wood_presence = Bois) %>% 
-  mutate(wood_presence = as.factor(wood_presence))
-
-Trait_mean_individuals_vect<- Traits_brut_data %>% 
-  dplyr::select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Xutm, Yutm, wood_presence, morphotype_field) %>% 
-  group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, wood_presence, morphotype_field) %>%
-    summarize()
-
-#write.csv(Trait_mean_individuals_vect, file = "C:\\Users\\emduc\\Desktop\\coord_sympho.csv" )
-```
-
-
-
-# transformed trait 
-
-We are going to add transformed trait to our data table like Leaf Dry Mass Content (LMDC), Specific Leaf Area (SLA) and Chorophyll content from SPAD
-
-```{r}
-Trait_mean_transform <- Trait_mean_individuals_num %>% 
-  mutate(SLA = Area_exclude / Dry_Weight) %>% 
-  mutate(LMDC = Dry_Weight/ Fresh_weight) %>% 
-  mutate(Chloro_content = ((154.1* SPAD_mean)/(197.6-SPAD_mean))) %>% 
-  dplyr::select(n_parcelle, n_carre, n_arbre, "LT_mean", "Branch_diameter", "Bark_thickness", "Bark_infra_density", "Wood_infra_density", LMDC, SLA, Chloro_content, Area_exclude)
-```
-
-
-chlorophyll content transformation come from Coste et al 2010 but with parameters from papers and not re-fitted with our data .. 
-And now merging trait mean num and vect to have an complete mean trait value table 
-
-```{r }
-Trait_mean_transform_final <- merge(Trait_mean_transform, Trait_mean_individuals_vect, by = c("n_parcelle", "n_carre", "n_arbre") ) %>%
-  mutate(Dawkins = gsub("A","",Dawkins)) %>% 
-  mutate(Dawkins = gsub("B","",Dawkins)) %>% 
-  mutate(Dawkins = gsub("C","",Dawkins)) %>% 
-  mutate(Dawkins = as.factor(as.integer(Dawkins))) %>% 
- # filter( SLA < 200) %>% 
-  #filter(Dawkins != "") %>% 
-  mutate( basal_area = (pi* (diameter)^2)/4)
-
-#write.csv2(Trait_mean_transform_final , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_transform.csv")
-
-```
-
-# environment data
-## environment fromparacou SIG 
-```{r}
-environment <-read.csv(file.path(path, "environment\\Paracou\\environmenttest.csv"),header = T, dec = ",", sep=";")%>% 
-  dplyr::select(-morphotype, -X, -circonf, -espece, -n_essence, -Famille, -Genre, -code_vivant, -code_mesure, -idTaxon, -campagne, -X.1)
-
-
-environment_trait <- Trait_mean_transform_final %>%  inner_join(environment, by = c("n_parcelle", "n_carre", "n_arbre"))
-
-
-```
-
-
-merging environmental data with transformed trait data, only 398 are in commun so one individual is missing lets found which one 
-
-```{r}
-Trait_mean_transform_final %>% anti_join(environment_trait , by= c("n_parcelle", "n_carre", "n_arbre"))
-
-```
-
-So 14-2-459 is present in environment data base 
-
-## environment from neighbour basal area 
-
-```{r}
-G_neighbour <- read.csv(file.path(path, "Full_Gneighbour.csv"),header = T, dec = ".", sep=",")
-
-G_neighbour <- G_neighbour %>% 
-  dplyr::select(PointWeight, nNeighbors, GNeighbors, n_parcelle, n_carre, n_arbre )
-
-environment_trait2 <- G_neighbour %>% 
-  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
-
-#write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\environment_trait2.csv" )
-
-Trait_mean_transform%>%  anti_join(environment_trait2, by = c("n_parcelle", "n_carre", "n_arbre"))
-
-```
-So here 4 individuals are missing from the full corrected  individual count data because there is a filter on indvidual with aberrant SLA >200 (11-1-742 : 842 and 11-4-983 : 489) , individual without Dawkins value ( 15-1-198) and the last one that is missing from environmental data (14-2-459).
-
-### competition index 
-
-```{r}
-environment_trait2 <- environment_trait2 %>% 
-  mutate(Competition = ((GNeighbors/ nNeighbors)/PointWeight))
-
-#write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment_trait2.csv" )
-```
-
-### dcm 
-
-```{r}
-dcm <- read.csv(file.path(path, "sympho_dcm.csv"),header = T, dec = ".", sep=",")
-
-environment_trait2 <- dcm %>% 
-  select(-X) %>% 
-  inner_join(environment_trait2, by = c("n_parcelle", "n_carre", "n_arbre"))
-
-```
-
 
 # plot 
 ## simple trait 
 ### SLA distribution 
 
 ```{r}
- Trait_mean_transform_final %>%    
+ environment_trait %>%    
 ggplot( aes(SLA))+
   geom_histogram(na.rm= T, binwidth = 4)
 ```
@@ -158,7 +42,7 @@ There are two individuals that have aberrant SLA value 11-1-742 : 842 and 11-4-9
 ### LMDC distribution 
 
 ```{r}
-ggplot(Trait_mean_transform_final, aes(LMDC))+
+ggplot(environment_trait, aes(LMDC))+
   geom_histogram(binwidth = 0.008)
 ```
 
@@ -168,14 +52,14 @@ ggplot(Trait_mean_transform_final, aes(LMDC))+
 ### LT distribution 
 
 ```{r}
-ggplot(Trait_mean_transform_final, aes(LT_mean))+
+ggplot(environment_trait, aes(LT_mean))+
   geom_histogram(na.rm = T, binwidth = 12)
 ```
 
 ### Chlorophylle content distribution 
 
 ```{r}
-ggplot(Trait_mean_transform_final, aes(Chloro_content))+
+ggplot(environment_trait, aes(Chloro_content))+
   geom_histogram(na.rm = T, binwidth = 2)
 ```
 
@@ -183,7 +67,7 @@ ggplot(Trait_mean_transform_final, aes(Chloro_content))+
 ### SLA ~ LMDC
 
 ```{r }
-Trait_mean_transform_final %>%   
+environment_trait %>%   
 ggplot(aes(SLA, LMDC, color= morphotype, size = diameter))+
   geom_jitter(na.rm=T)+
   labs(title = "", y="Leaf Dry Matter Content (LMDC) in g", x="Specific leaf area (SLA)")
@@ -191,7 +75,7 @@ ggplot(aes(SLA, LMDC, color= morphotype, size = diameter))+
 
 
 ```{r }
-Trait_mean_transform_final %>% 
+environment_trait %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d(na.rm=T )+
   background_grid(major = "xy", minor = "none")
@@ -199,28 +83,28 @@ ggplot(aes(SLA, LMDC))+
 
 
 ```{r }
-P_sp.1 <- Trait_mean_transform_final %>% 
+P_sp.1 <- environment_trait %>% 
   filter(morphotype == "sp.1") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "sp.1")
 
-P_globu <- Trait_mean_transform_final %>% 
+P_globu <- environment_trait %>% 
   filter(morphotype == "globulifera") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "globulifera")
 
-P_indet <- Trait_mean_transform_final %>% 
+P_indet <- environment_trait %>% 
   filter(morphotype == "Indet.") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "indet")
 
-P_sp.1_indent <- Trait_mean_transform_final %>% 
+P_sp.1_indent <- environment_trait %>% 
   filter(morphotype != "globulifera") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
@@ -234,7 +118,7 @@ plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"
 
 
 ```{r }
-Trait_mean_transform_final %>% 
+environment_trait %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d(na.rm=T )+
   background_grid(major = "xy", minor = "none")
@@ -242,28 +126,28 @@ ggplot(aes(SLA, LMDC))+
 
 
 ```{r }
-P_sp.1 <- Trait_mean_transform_final %>% 
+P_sp.1 <- environment_trait %>% 
   filter(morphotype_field == "S") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "S")
 
-P_globu <- Trait_mean_transform_final %>% 
+P_globu <- environment_trait %>% 
   filter(morphotype_field == "G") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "G")
 
-P_indet <- Trait_mean_transform_final %>% 
+P_indet <- environment_trait %>% 
   filter(morphotype_field == "SG") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "SG")
 
-P_sp.1_indent <- Trait_mean_transform_final %>% 
+P_sp.1_indent <- environment_trait %>% 
   filter(morphotype_field != "G") %>% 
 ggplot(aes(SLA, LMDC))+
   geom_density2d()+
@@ -276,37 +160,37 @@ plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"
 ### LMDC ~ LT 
 
 ```{r}
-ggplot(Trait_mean_transform_final, aes(LT_mean, LMDC, color= morphotype, size = diameter))+
+ggplot(environment_trait, aes(LT_mean, LMDC, color= morphotype, size = diameter))+
   geom_jitter(na.rm=T)
 ```
 
 ```{r }
-ggplot(Trait_mean_transform_final,aes(LT_mean, LMDC))+
+ggplot(environment_trait,aes(LT_mean, LMDC))+
   geom_density2d(na.rm=T, col = "orange")
 ```
 ```{r }
-P_sp.1 <- Trait_mean_transform_final %>% 
+P_sp.1 <- environment_trait %>% 
   filter(morphotype == "sp.1") %>% 
 ggplot(aes(LT_mean, LMDC))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "sp.1")
 
-P_globu <- Trait_mean_transform_final %>% 
+P_globu <- environment_trait %>% 
   filter(morphotype == "globulifera") %>% 
 ggplot(aes(LT_mean, LMDC))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "globulifera")
 
-P_indet <- Trait_mean_transform_final %>% 
+P_indet <- environment_trait %>% 
   filter(morphotype == "Indet.") %>% 
 ggplot(aes(LT_mean, LMDC))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "Indet")
 
-P_sp.1_indent <- Trait_mean_transform_final %>% 
+P_sp.1_indent <- environment_trait %>% 
   filter(morphotype != "globulifera") %>% 
 ggplot(aes(LT_mean, LMDC))+
   geom_density2d()+
@@ -319,39 +203,39 @@ plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"
 ### SLA ~ LT 
 
 ```{r}
-Trait_mean_transform_final %>%  filter(SLA < 200) %>% 
+environment_trait %>%  filter(SLA < 200) %>% 
 ggplot( aes(LT_mean, SLA, color= morphotype, size = diameter))+
   geom_jitter(na.rm=T)
 ```
 
 ```{r }
-ggplot(Trait_mean_transform_final,aes(LT_mean ,SLA))+
+ggplot(environment_trait,aes(LT_mean ,SLA))+
   geom_density2d(na.rm=T, col = "orange")
 ```
 
 ```{r }
-P_sp.1 <- Trait_mean_transform_final %>% 
+P_sp.1 <- environment_trait %>% 
   filter(morphotype == "sp.1") %>% 
 ggplot(aes(SLA, LT_mean))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "sp.1")
 
-P_globu <- Trait_mean_transform_final %>% 
+P_globu <- environment_trait %>% 
   filter(morphotype == "globulifera") %>% 
 ggplot(aes(SLA, LT_mean))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "globulifera")
 
-P_indet <- Trait_mean_transform_final %>% 
+P_indet <- environment_trait %>% 
   filter(morphotype == "Indet.") %>% 
 ggplot(aes(SLA, LT_mean))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "Indet")
 
-P_sp.1_indent <- Trait_mean_transform_final %>% 
+P_sp.1_indent <- environment_trait %>% 
   filter(morphotype != "globulifera") %>% 
 ggplot(aes(SLA, LT_mean))+
   geom_density2d()+
@@ -364,41 +248,41 @@ plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"
 ### Chlorophylle content ~ SLA 
 
 ```{r}
-Trait_mean_transform_final %>%  filter(SLA < 200) %>% 
+environment_trait %>%  filter(SLA < 200) %>% 
 ggplot( aes(SLA, Chloro_content, color= morphotype, size = diameter))+
   geom_jitter(na.rm=T)
 ```
 
 ```{r }
-ggplot(Trait_mean_transform_final,aes(SLA,Chloro_content))+
+ggplot(environment_trait,aes(SLA,Chloro_content))+
   geom_density2d(na.rm=T, col = "orange")
 ```
 
 
 
 ```{r }
-P_sp.1 <- Trait_mean_transform_final %>% 
+P_sp.1 <- environment_trait %>% 
   filter(morphotype == "sp.1") %>% 
 ggplot(aes(SLA, Chloro_content))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "sp.1")
 
-P_globu <- Trait_mean_transform_final %>% 
+P_globu <- environment_trait %>% 
   filter(morphotype == "globulifera") %>% 
 ggplot(aes(SLA, Chloro_content))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "globulifera")
 
-P_indet <- Trait_mean_transform_final %>% 
+P_indet <- environment_trait %>% 
   filter(morphotype == "Indet.") %>% 
 ggplot(aes(SLA, Chloro_content))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "Indet")
 
-P_sp.1_indent <- Trait_mean_transform_final %>% 
+P_sp.1_indent <- environment_trait %>% 
   filter(morphotype != "globulifera") %>% 
 ggplot(aes(SLA, Chloro_content))+
   geom_density2d()+
@@ -412,38 +296,38 @@ plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"
 
 
 ```{r}
-ggplot(Trait_mean_transform_final , aes(LMDC, Chloro_content, color= morphotype, size = diameter))+
+ggplot(environment_trait , aes(LMDC, Chloro_content, color= morphotype, size = diameter))+
   geom_jitter(na.rm=T)
 ```
 
 ```{r }
-ggplot(Trait_mean_transform_final,aes(LMDC,Chloro_content))+
+ggplot(environment_trait,aes(LMDC,Chloro_content))+
   geom_density2d(na.rm=T, col = "orange")
 ```
 
 ```{r }
-P_sp.1 <- Trait_mean_transform_final %>% 
+P_sp.1 <- environment_trait %>% 
   filter(morphotype == "sp.1") %>% 
 ggplot(aes(LMDC, Chloro_content))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "sp.1")
 
-P_globu <- Trait_mean_transform_final %>% 
+P_globu <- environment_trait %>% 
   filter(morphotype == "globulifera") %>% 
 ggplot(aes(LMDC, Chloro_content))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "globulifera")
 
-P_indet <- Trait_mean_transform_final %>% 
+P_indet <- environment_trait %>% 
   filter(morphotype == "Indet.") %>% 
 ggplot(aes(LMDC, Chloro_content))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "Indet")
 
-P_sp.1_indent <- Trait_mean_transform_final %>% 
+P_sp.1_indent <- environment_trait %>% 
   filter(morphotype != "globulifera") %>% 
 ggplot(aes(LMDC, Chloro_content))+
   geom_density2d()+
@@ -459,38 +343,38 @@ plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"
 
 ```{r}
 
-ggplot(Trait_mean_transform_final  ,aes(LT_mean, Chloro_content, color= morphotype, size = diameter))+
+ggplot(environment_trait  ,aes(LT_mean, Chloro_content, color= morphotype, size = diameter))+
   geom_jitter(na.rm=T)
 ```
 
 ```{r }
-ggplot(Trait_mean_transform_final,aes(LT_mean,Chloro_content))+
+ggplot(environment_trait,aes(LT_mean,Chloro_content))+
   geom_density2d(na.rm=T, col = "orange")
 ```
 
 ```{r }
-P_sp.1 <- Trait_mean_transform_final %>% 
+P_sp.1 <- environment_trait %>% 
   filter(morphotype == "sp.1") %>% 
 ggplot(aes(LT_mean, Chloro_content))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "sp.1")
 
-P_globu <- Trait_mean_transform_final %>% 
+P_globu <- environment_trait %>% 
   filter(morphotype == "globulifera") %>% 
 ggplot(aes(LT_mean, Chloro_content))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "globulifera")
 
-P_indet <- Trait_mean_transform_final %>% 
+P_indet <- environment_trait %>% 
   filter(morphotype == "Indet.") %>% 
 ggplot(aes(LT_mean, Chloro_content))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "Indet")
 
-P_sp.1_indent <- Trait_mean_transform_final %>% 
+P_sp.1_indent <- environment_trait %>% 
   filter(morphotype != "globulifera") %>% 
 ggplot(aes(LT_mean, Chloro_content))+
   geom_density2d()+
@@ -502,7 +386,7 @@ plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"
 
 ### Wood density ~ bark density
 ```{r}
-Trait_mean_transform_final %>%  
+environment_trait %>%  
 ggplot( aes(Wood_infra_density, Bark_infra_density, color= morphotype, size = diameter))+
   geom_jitter(na.rm=T)
 ```
@@ -510,7 +394,7 @@ ggplot( aes(Wood_infra_density, Bark_infra_density, color= morphotype, size = di
 ## Trait and environment 
 ### SLA ~ Dawkins 
 ```{r}
-Trait_mean_transform_final %>%   
+environment_trait %>%   
 ggplot( aes(x = diameter, y = SLA, color= Dawkins))+
   geom_point()
 ```
@@ -519,7 +403,7 @@ there is one individuals without Dawkins evaluation that have been removed at th
 We can see that there is a logical correlation between Dawkins and diameter so this subjective evaluation is quite good (developp why "logical") . Then smaller is the Dawkins score highter is the SLA value. It is not suprising because SLA reflect the leaf acquisition capacity and for individuals under the canopy light is less evalable so having hight SLA value allow to intercept more light and so maximise growth in adverse conditions (Long et al 2011).
 
 ```{r}
-Trait_mean_transform_final %>% 
+environment_trait %>% 
 ggplot( aes(x = Dawkins, y =SLA , fill = Dawkins))+
   geom_boxplot()+
    stat_compare_means(method = "anova", 
@@ -531,36 +415,30 @@ ggplot( aes(x = Dawkins, y =SLA , fill = Dawkins))+
   
 
 ```
- 
-```{r}
-Trait_mean_transform_final %>% 
-  aov(SLA ~ Dawkins, data=.) %>% 
-  TukeyHSD()
-```
 
 ```{r }
-P_sp.1 <- Trait_mean_transform_final %>% 
+P_sp.1 <- environment_trait %>% 
   filter(morphotype == "sp.1") %>% 
 ggplot(aes(SLA, diameter))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "sp.1")
 
-P_globu <- Trait_mean_transform_final %>% 
+P_globu <- environment_trait %>% 
   filter(morphotype == "globulifera") %>% 
 ggplot(aes(SLA, diameter))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "globulifera")
 
-P_indet <- Trait_mean_transform_final %>% 
+P_indet <- environment_trait %>% 
   filter(morphotype == "Indet.") %>% 
 ggplot(aes(SLA, diameter))+
   geom_density2d()+
   background_grid(major = "xy", minor = "none")+
    labs(title = "Indet")
 
-P_sp.1_indent <- Trait_mean_transform_final %>% 
+P_sp.1_indent <- environment_trait %>% 
   filter(morphotype != "globulifera") %>% 
 ggplot(aes(SLA, diameter))+
   geom_density2d()+
@@ -575,7 +453,7 @@ plot_grid(P_sp.1, P_globu, P_indet, P_sp.1_indent   , labels=c("A", "B","C", "D"
 ## Branch wood presence ~ diameter 
 
 ```{r}
-ggplot(Trait_mean_transform_final, aes(x= Dawkins, y= wood_presence, size = diameter, color = morphotype))+
+ggplot(environment_trait, aes(x= Dawkins, y= wood_presence, size = diameter, color = morphotype))+
   geom_jitter()
 ```
 Repartition between diameter category seems to be homogene, so there is no link between branch sample and diameter. Broken branches does not come from weaker wood from older or younger individual with diameter used as a proxy for the "age".
@@ -588,7 +466,7 @@ Repartition between diameter category seems to be homogene, so there is no link 
 
 
 ```{r}
-ACP_data<- environment_trait2 %>% 
+ACP_data<- environment_trait %>% 
   select(LMDC, SLA, Chloro_content, LT_mean, morphotype_field, diameter) 
 
 
@@ -612,7 +490,7 @@ So Chlorophyll content can be reduce to LMDC and LT by diameter ?
 
 ## diameter ~ LT
 ```{r}
-Trait_mean_transform_final %>%  
+environment_trait %>%  
 ggplot(aes(LT_mean,diameter, color= morphotype))+
   geom_jitter(na.rm=T)
 ```
@@ -623,14 +501,14 @@ Within individuals, many studies have shown that outer-canopy ‘sun’ leaves t
 ## SLA ~diameter 
 
 ```{r}
-Trait_mean_transform_final %>%   
+environment_trait %>%   
 ggplot(aes(diameter, LT_mean, color= morphotype))+
   geom_jitter(na.rm=T)
 ```
 ## ACP environment 
 ### topographic variables 
 ```{r}
-ACP_data2<- environment_trait2 %>% 
+ACP_data2<- environment_trait %>% 
   select( dem,  slope, morphotype_field) 
   
 
@@ -647,7 +525,6 @@ var12 <-  fviz_pca_var(res.pca2,axes = c(1, 2), alpha.var="contrib")
 
 both2 <- fviz_pca_biplot(res.pca2, axes = c(1, 2), label ="var", habillage = ACP_data2$morphotype_field)
 
-plot_grid(var12, var23, var13, both2, ncol = 2, nrow = 2)
 ```
 
 TRI and slope are highly correlated not so surprising because TRI depict topographic microheterogeneity and calculted with difference of elevation between raster cells and currently land elevation imply slope. 
@@ -693,7 +570,7 @@ nutriment <- soil_nutrient %>%
 waterlog, hydromorphy = discrete variables not continuous 
 
 ```{r}
-ACP_data5<- environment_trait2 %>% 
+ACP_data5<- environment_trait %>% 
   select( wetness,  slope, dem, Competition, morphotype_field) 
 
 res.pca5 <- PCA(ACP_data5, quali.sup = 5, graph = F)
@@ -716,7 +593,7 @@ both13 <- fviz_pca_biplot(res.pca5, axes = c(3, 1), label ="var")
 ACP without : aspect, d_logging_gap , d_creek 
 ```{r}
 
-ACP_data3<- environment_trait2 %>% 
+ACP_data3<- environment_trait %>% 
   select(wetness, dem, slope, LMDC, SLA ,LT_mean ,Competition, morphotype_field) 
 
 

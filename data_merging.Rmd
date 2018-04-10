@@ -6,7 +6,7 @@ output: html_document
 rm(list = ls())
 knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
 library(tidyverse)
- path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+ path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\data_merging\\"
 ```
 
 
@@ -73,7 +73,7 @@ trait_final <- full_join(trait_transform, Trait_mean_vect, by = c("n_parcelle", 
 # environment data
 ## environment fromparacou SIG 
 
-every environmental data have been calculated with dcm and dem with 1meter cells in 2015. Execpt for the wetness index here, so we remove the wetness index colum in this file and add the right one later. 
+every environmental data have been calculated with dcm and dem with 1meter cells in 2015. Execpt for the wetness index environement_paracou file, so we remove the wetness index colum in this file and add the right one later. 
 
 ```{r}
 environment <-read.csv(file.path(path, "Environment_paracou.csv"),header = T, dec = ".", sep=",") %>% 
@@ -126,6 +126,8 @@ environment_trait <- environment_trait %>%
 
 ## adding d_gap 
 
+D_gap is a descriptor or the distance between the focal tree and the nearest light gap (here gap area area > 4m²), it is calculated with 1meter precision dcm.
+
 ```{r}
 gap <- read.csv(file.path(path, "sympho_gap.csv"),header = T, dec = ".", sep=",")%>% 
   dplyr::select(-X)
@@ -135,6 +137,20 @@ environment_trait <- gap %>%
 
 
 ```
+
+## adding dcm 
+
+Dcm is the digital canopy model it gives the mean height in a given point here our focal tree. It is not always reliable so we need to check if height value are cohorent with DBH data because there is a knonw allometry between height and DBH due to biological constrains like the "limite de flambage" in french. 
+
+```{r}
+dcm <- read.csv(file.path(path, "sympho_dcm.csv"),header = T, dec = ".", sep=",")%>% 
+  dplyr::select(-X)
+
+environment_trait <- dcm%>% 
+  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
+
+```
+
 
 
 ## adding wetness
