@@ -21,6 +21,10 @@ library(vegan)
 library(MASS)
 library(ellipse)
 library(smatr)
+library(TeachingDemos)
+
+source("https://raw.githubusercontent.com/talgalili/R-code-snippets/master/boxplot.with.outlier.label.r") # Load the function for outliers label
+
 
 path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
 # path <- "./data/" # To be used on sylvain local machine
@@ -29,14 +33,15 @@ path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
 # data
 
 ```{r}
-trait <- read.csv(file.path(path, "environment_trait2.csv"),header = T, dec = ".", sep=",")
+trait <- read.csv(file.path(path, "environment_trait2.csv"),header = T, dec = ".", sep=",") %>% 
+  dplyr::select(-PointWeight, -nNeighbors, -GNeighbors, -wood_presence, -NomForet, -idArbre, -Y, -X, -Branch_diameter, -Bark_thickness, -Bark_infra_density, -Wood_infra_density)
 
 topo <- read.csv(file.path(path, "topo_sympho.csv"),header = T, dec = ".", sep=";") 
 
 topo <- topo %>% 
   dplyr::filter(TypeTopoEN !="")  
 
-trait <- trait  %>% 
+trait1 <- trait  %>% 
   mutate(Dawkins = as.factor(as.character(Dawkins))) %>% 
   full_join(topo) %>% 
   dplyr::select(n_parcelle, n_carre, n_arbre,SLA, LT_mean, Chloro_content, LMDC,Area_exclude , d_creek, wetness, TypeTopoEN, Dawkins, dem, slope, TRI, aspect, curvature, d_log_gap, Competition, diameter) %>% 
@@ -44,32 +49,119 @@ trait <- trait  %>%
 ```
 In the following text, the terms descriptors and varaible will be used interchangeably. These refereing to the attributes (not in the functional way), or character used to describe or compoare the object of the study.
 
+## spotting outliers 
+
+
+```{r}
+
+trait <- trait %>% 
+  mutate(ID= paste(n_parcelle, n_carre, n_arbre, sep="_"))
+
+outliers_name <- trait$ID
+```
+###SLA
+```{r}
+boxplot.with.outlier.label(trait$SLA,outliers_name)%$% 
+data.frame(ID = outlier_df$label_name)  %>%  inner_join(trait)
+
+
+```
+So there is four outliersaccording to boxplot analysis, 11-1-742 and 11-4-983 have really abberrant value whereas 13-2-73 and 15-1-198 can be consider are maximum range value for SLA. 
+
+```{r}
+trait <- trait %>% 
+  filter(SLA < 400)
+
+```
+
+###LMDC
+```{r}
+outliers_name <- trait$ID
+boxplot.with.outlier.label(trait$LMDC,outliers_name) %$% 
+data.frame(ID =outlier_df$label_name) %>%  inner_join(trait) 
+
+
+```
+So there are 7 value that are consider as outliers, here we decide to remove the individuals 
+```{r}
+trait <- trait %>% 
+  filter(!(LMDC < 0.25 |LMDC > 0.45))
+```
+
+### LT_mean
+
+```{r}
+outliers_name <- trait$ID
+boxplot.with.outlier.label(trait$LT_mean,outliers_name)
+
+```
+FOr Lt_mean there is no outliers ! 
+
+### Chloro content
+```{r}
+boxplot.with.outlier.label(trait$Chloro_content,outliers_name)%$% 
+data.frame(ID= outlier_df$label_name) %>%  inner_join(trait)
+```
+
+there is one outlier so we removed it 
+
+```{r}
+trait <- trait %>% 
+  filter(! Chloro_content < 40.5)
+```
+
+### Area 
+
+```{r}
+outliers_name <- trait$ID
+boxplot.with.outlier.label(trait$Area_exclude,outliers_name)%$% 
+data.frame(ID = outlier_df$label_name)%>%  inner_join(trait) 
+```
+
+Normaly when no individual are removed after outlier spotting there are 20 individuals which are consider as Area outlier, here it is more difficult to know if we need to remove it becaus some individual have extramly big leaves .. but maybe it is due to an ontogenic effect and so it would be better to remove them.
+
+```{r}
+trait <- trait %>% 
+  filter(!Area_exclude > 54)
+```
+
+
 ## standardisation 
- here I made standardisation to simplify mathematical forms of relation shps because we have  quantitative descriptors of differents types. This omogeneisation of scale is here done by expansion (dividing by a constant here mean value ) to have dimentionless descriptors.  But It might be better to do a total linear transformation by translation (adding or subtracting a constant) and then expansion which gives : y' = b0 + b1y
+
+all variable have been reduce and centered by z-score method to have demensionless variables.
+  
 ```{r}
 
 trait_standar <- trait %>%
   dplyr::select(n_parcelle, n_carre, n_arbre,LT_mean, Chloro_content, LMDC, SLA, Area_exclude) %>% 
-  mutate(LT_mean = (LT_mean/ (mean(trait$LT_mean)))) %>% 
-  mutate(Chloro_content = (Chloro_content/ (mean(trait$Chloro_content)))) %>% 
-   mutate(SLA= (SLA/ (mean(trait$SLA)))) %>% 
-  mutate((Area = (Area_exclude/mean(Area_exclude))))
+  
+  mutate(LT_mean = (LT_mean-(mean(trait$LT_mean))/sd(trait$LT_mean))) %>% 
+  
+  mutate(Chloro_content = (Chloro_content-(mean(trait$Chloro_content))/sd(trait$Chloro_content))) %>% 
+  
+  mutate(SLA= (SLA - (mean(trait$SLA))/sd(trait$SLA))) %>% 
+  
+  mutate(Area = (Area_exclude-(Area_exclude-mean(trait$Area_exclude))/ sd(trait$Area_exclude))) %>%
+  
+  dplyr::select(-Area_exclude)
 
 environment_standar <- trait %>% 
-  dplyr::select(n_parcelle, n_carre, n_arbre,wetness,Competition,   d_creek, aspect, curvature, TRI, diameter,dem,slope, TypeTopoEN, Dawkins, d_log_gap, Area_exclude) %>% 
-  mutate( diameter= (diameter/ (mean(trait$diameter)))) %>% 
-  mutate( d_creek= (d_creek/ (mean(trait$d_creek)))) %>%
-  mutate( wetness= (wetness/(mean(trait$wetness)))) %>% 
-  mutate( dem= (dem/(mean(trait$dem)))) %>% 
-  mutate( slope= (slope/(mean(trait$slope)))) %>%
-  mutate( TRI= (TRI/(mean(trait$TRI)))) %>%
-  mutate( curvature= (curvature/(mean(trait$curvature)))) %>%
-  mutate( aspect= (aspect/(mean(trait$aspect)))) %>%
-  mutate( Competition= (Competition/(mean(trait$Competition)))) %>% 
-mutate( d_log_gap= (d_log_gap/(mean(trait$d_log_gap))))
+  dplyr::select(n_parcelle, n_carre, n_arbre,wetness,Competition,   d_creek, aspect, curvature, TRI, diameter,dem,slope, Dawkins, d_log_gap) %>% 
+  mutate( diameter= (diameter- (mean(trait$diameter))/sd(trait$diameter))) %>% 
+  mutate( d_creek= (d_creek- (mean(trait$d_creek))/sd(trait$d_creek))) %>%
+  mutate( wetness= (wetness-(mean(trait$wetness))/sd(trait$wetness))) %>% 
+  mutate( dem= (dem-(mean(trait$dem))/sd(trait$dem))) %>% 
+  mutate( slope= (slope-(mean(trait$slope))/sd(trait$slope))) %>%
+  mutate( TRI= (TRI-(mean(trait$TRI))/sd(trait$TRI))) %>%
+  mutate( curvature= (curvature-(mean(trait$curvature))/sd(trait$curvature))) %>%
+  mutate( aspect= (aspect-(mean(trait$aspect))/sd(trait$aspect))) %>%
+  mutate( Competition= (Competition-(mean(trait$Competition))/sd(trait$Competition))) %>% 
+mutate( d_log_gap= (d_log_gap-(mean(trait$d_log_gap))/sd(trait$d_log_gap)))
+#, TypeTopoEN
 
 ```
-ranging or z-score methods are other solution espacially for ordination procedure.. 
+
+
 
 ## descriptors selection
 
@@ -117,7 +209,7 @@ Then I need to choose between dem, slope and wetness as the wetness index is der
 environment_standar <- environment_standar %>% 
   dplyr::select(-slope, -dem)
 
-pairs(environment_standar[,4:11], lower.panel = panel.smooth, upper.panel = panel.cor)
+pairs(environment_standar[,4:10], lower.panel = panel.smooth, upper.panel = panel.cor)
 ```
 SO now there is a hudge correlation between d_log_gap and d_creek due to bottom land is not exploitable so logging gap had been done with a certain distance from those area. D_creek give a better ecological information, than d_log_gap because exploitation had been done sevral years ago and do not longer impact leaf functionnal trait due to the reduce leaf life span. 
 
@@ -125,9 +217,10 @@ Wetness and type topo are correlated and as wetness is a derivative analysis of 
 
 Finally Dawkins to competition don't know, it would be better with d_gap because without Dawkins wa lost light information that cannot be extract from competition even if they are correlated. 
 
+
 ```{r}
 environment_standar <- environment_standar %>% 
-  dplyr::select(-d_log_gap, -TypeTopoEN, -Dawkins)
+  dplyr::select(-d_log_gap,  -Dawkins)
 
 pairs(environment_standar[,4:8], lower.panel = panel.smooth, upper.panel = panel.cor) %>% summary
 ```
@@ -141,8 +234,9 @@ sort(vif(environment_standar) )
 Borcard et al. 2011: 175 argue that in the case of RDA, VIFs > 10 should be avoided, so here everything is right. 
 
 
-## descriptors distribution 
 
+## descriptors distribution 
+### environment
 ```{r}
 wetness <- ggplot(environment_standar, aes((wetness)))+
   geom_histogram(na.rm = T)
@@ -159,47 +253,14 @@ aspect <- ggplot(environment_standar, aes((aspect)))+
 curvature <- ggplot(environment_standar, aes((curvature)))+
   geom_histogram(na.rm = T)
 
-plot_grid(wetness, competition, d_creek, aspect,curvature   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 2)
+plot_grid(wetness, competition, d_creek, aspect,curvature   , labels=c("A", "B","C", "D"), ncol = 2, nrow = 3)
 ```
-
-
-#rda 
-## analysis
-
-If lm part is not run before you need to remove n_parcelle, n_carre and n_arbre from trait_standar and environment_standar
-
-```{r}
- trait_standar2 <- trait_standar %>% 
-  dplyr::select(-n_parcelle, -n_carre, -n_arbre)
-environment_standar2 <- environment_standar %>% 
-  dplyr::select(-n_parcelle, -n_carre, -n_arbre)
-
-rda_trait <- rda(trait_standar2~.,environment_standar2,scale = T, na.omit= T)
-summary(rda_trait)
-
-```
-
-Now rda model validation 
-```{r}
-coef(rda_trait)
-set.seed(111)
-anova.cca(rda_trait, step=1000)
-anova.cca(rda_trait, by="axis", step= 1000)
-```
-
-rda result plot
-
-```{r}
-plot(rda_trait, scaling = 0.5, main = "Triplot RDA scaling 1 - wa scores")
-var.sc <- scores(rda_trait, choices = 1:2, scaling = 1, display = "sp")
-arrows(0, 0, var.sc[, 1], var.sc[, 2], length = 0, lty = 1, col = "red")
-```
-
-
 
 # lm 
 
 Using standardized data and only uncorrelated data to avoid singularities error in multiplicative model 
+
+
 
 ```{r}
 data_standar <- full_join(environment_standar,trait_standar) %>%
@@ -209,14 +270,14 @@ data_standar <- full_join(environment_standar,trait_standar) %>%
 data_standar$Dawkins <- trait$Dawkins
 ```
 
-
 ## SLA
 ###  test normality
+
 ```{r SLA normality}
-shapiro.test(data_standar$SLA) ;shapiro.test(trait$SLA); shapiro.test(log(trait$SLA));
-qqnorm(trait$SLA,datax=TRUE)
-abline(qqline(trait$SLA,datax=TRUE))
-hist((trait$SLA))
+qqnorm(sqrt(trait_standar$SLA),datax=TRUE)
+abline(qqline(trait_standar$SLA),datax=TRUE)
+hist(sqrt(trait_standar$SLA))
+shapiro.test(trait_standar$SLA)
 ```
 
 Accordindg to shapiro test SLA distribution is not normal even if with QQ plot it seems to be normal. Also log transformation does not improve normality assumption whereas it seems to work in some papers like Lajoie & Vellen 2015 or log10 like in Vajardero and Piper 2010 or Wright et al 2007. And other transfromation for left-skewed distribution also are not efficient. 
@@ -225,27 +286,18 @@ Accordindg to shapiro test SLA distribution is not normal even if with QQ plot i
 
 
 ```{r}
-# trait <- trait %>% 
-#   dplyr::select(-n_parcelle, -n_carre, -n_arbre)
-# 
-# SLA_model <-  lm(SLA~., data= trait)
-# step(object = SLA_model, direction = "both")
 
-# lm(formula = SLA ~ LT_mean + Chloro_content + LMDC + d_creek + 
-#     Dawkins + d_log_gap, data = trait) %>% summary() #both 
 data_standar3 <- data_standar %>% 
-  dplyr::select(-Area_exclude, -LMDC, -LT_mean)
+  dplyr::select(-Area, -LMDC, -LT_mean)
 
 SLA_model <-  lm(SLA~., data= data_standar3)
 step(object = SLA_model, direction = "both")
 
-lm(formula = log(SLA) ~ d_creek + LT_mean + Chloro_content + LMDC + 
-    Dawkins, data = data_standar3) %>% summary
-lm(formula = SLA ~ d_creek + LT_mean + Chloro_content + LMDC + 
-    Dawkins, data = data_standar) %>% summary
+lm(formula = SLA ~ Competition + d_creek + Chloro_content + Dawkins, 
+    data = data_standar3) %>% summary
 
-lm(formula = SLA ~ d_creek * Dawkins  * LT_mean +
-    Chloro_content * LMDC, data = data_standar3) %>% summary
+# lm(formula = SLA ~ d_creek * Dawkins  * LT_mean +
+#     Chloro_content * LMDC, data = data_standar3) %>% summary
 ```
 
 
@@ -275,11 +327,12 @@ with the backwar analysis we have the same result than "both" step method. th ad
 ## LMDC
 ### normality test
 
+
 ```{r}
-shapiro.test(data_standar$LMDC) ;shapiro.test(trait$LMDC); shapiro.test(log(trait$LMDC))
-qqnorm(trait$LMDC,datax=TRUE) 
-abline(qqline(trait$LMDC,datax=TRUE))
-hist(trait$LMC)
+shapiro.test((trait_standar$LMDC))
+qqnorm(trait_standar$LMDC,datax=TRUE) 
+abline(qqline(trait_standar$LMDC,datax=TRUE))
+hist(trait_standar$LMDC)
 ```
 
 
@@ -321,9 +374,9 @@ Backward method is better Adjusted R-squared:  0.3919
 ###normality test 
 
 ```{r}
-shapiro.test(data_standar$LT_mean) ;shapiro.test(trait$LT_mean); 
-shapiro.test(log(trait$LT_mean))
-hist(log(trait$LT_mean))
+ks.test(data_standar$LT_mean, "pnorm")
+shapiro.test(data_standar$LT_mean) 
+hist((data_standar$LT_mean))
 qqnorm(trait$LT_mean,datax=TRUE)
 abline(qqline(trait$LT_mean,datax=TRUE))
 ```
@@ -372,9 +425,8 @@ using data standar with SLA value because chlorocontent is not correlated or a c
 ### normality test 
 
 ```{r normality chloro}
-shapiro.test(data_standar$Chloro_content) ;shapiro.test(trait$Chloro_content); 
-shapiro.test(log(trait$Chloro_content))
-hist(log(trait$Chloro_content))
+shapiro.test(data_standar$Chloro_content) 
+hist(data_standar$Chloro_content)
 qqnorm(trait$Chloro_content,datax=TRUE)
 abline(qqline(trait$Chloro_content,datax=TRUE))
 ```
@@ -428,6 +480,17 @@ Once again forward method does not work well and result from both method is the 
 
 
 
+
+## area
+
+```{r}
+shapiro.test((log(trait_standar$Area)))
+qqnorm(log(trait_standar$Area),datax=TRUE) 
+abline(qqline(log(trait_standar$Area),datax=TRUE))
+hist(log(trait_standar$Area))
+
+```
+
 #  SMA
 "Relationship strength was quantified using correlation r2 and P values; relationship
 sample sizes given in Table 2). Relationship strength was quantified using correlation r2 and P values; relationship
@@ -445,5 +508,40 @@ test <- sma(SLA~LMDC, data=data_standar)
 summary(test)
 plot(test, col ="purple")
 abline((lm(data_standar$SLA~data_standar$LMDC)))
+```
+
+
+
+#rda 
+## analysis
+
+If lm part is not run before you need to remove n_parcelle, n_carre and n_arbre from trait_standar and environment_standar
+
+```{r}
+ trait_standar2 <- trait_standar %>% 
+  dplyr::select(-n_parcelle, -n_carre, -n_arbre)
+environment_standar2 <- environment_standar %>% 
+  dplyr::select(-n_parcelle, -n_carre, -n_arbre)
+
+rda_trait <- rda(trait_standar2~.,environment_standar2,scale = T, na.omit= T)
+summary(rda_trait)
+
+```
+
+Now rda model validation 
+```{r}
+coef(rda_trait)
+set.seed(111)
+anova.cca(rda_trait, step=1000)
+anova.cca(rda_trait, by="axis", step= 1000)
+```
+
+rda result plot
+
+```{r}
+plot(rda_trait, scaling = 0.5, main = "Triplot RDA scaling 1 - wa scores")
+var.sc <- scores(rda_trait, choices = 1:2, scaling = 1, display = "species")
+
+arrows(0, 0, var.sc[, 1], var.sc[,2], length = 0, lty = 1, col = "red")
 ```
 

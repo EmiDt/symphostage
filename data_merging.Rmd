@@ -1,0 +1,162 @@
+---
+title: "merging_data"
+output: html_document
+---
+```{r}
+rm(list = ls())
+knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
+library(tidyverse)
+ path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+```
+
+
+
+#data brut
+Uppload data files with 2010 individuals measures 
+
+```{r}
+Traits_brut_data <- read.csv(file.path(path, "Full_traits_data.csv"),header = T, dec = ",", sep=";")
+```
+
+Transform mean individuals data because we are looking for inter-individual variation and not intra-individual only for numeric variables here.
+
+```{r}
+trait_mean_num <- Traits_brut_data %>% 
+  group_by(n_parcelle, n_carre, n_arbre) %>% 
+  summarize_at(c("Area_exclude", "Area_include", "Fresh_weight", "Dry_Weight", "SPAD_mean", "LT_mean", "Branch_diameter", "Bark_thickness", "Bark_infra_density", "Wood_infra_density" ), mean, na.rm = T)
+```
+So we have now only 402 observation for every leaf bruf measures and wood functional trait.
+
+There are also non-numeric information that we group here by individual 
+
+```{r }
+Traits_brut_data <- Traits_brut_data %>% 
+  dplyr::rename("wood_presence" = "Bois") %>% 
+  mutate(wood_presence = as.factor(wood_presence))
+
+Trait_mean_vect<- Traits_brut_data %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, Xutm, Yutm, wood_presence, morphotype_field) %>% 
+  dplyr::group_by(n_parcelle, n_carre, n_arbre, morphotype, Dawkins, diameter, wood_presence,Xutm, Yutm, morphotype_field) %>%
+   dplyr::summarize()
+```
+ Now vector type information are also summarsi with only 402 information 
+
+
+# transformed trait 
+
+We are going to add transformed trait to our data table like Leaf Dry Mass Content (LMDC), Specific Leaf Area (SLA) and Chorophyll content from SPAD
+
+```{r}
+trait_transform <- trait_mean_num %>% 
+  mutate(SLA = Area_exclude / Dry_Weight) %>% 
+  mutate(LMDC = Dry_Weight/ Fresh_weight) %>% 
+  mutate(Chloro_content = ((154.1* SPAD_mean)/(197.6-SPAD_mean))) %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre, "LT_mean", "Branch_diameter", "Bark_thickness", "Bark_infra_density", "Wood_infra_density", LMDC, SLA, Chloro_content, Area_exclude)
+```
+
+
+chlorophyll content transformation come from Coste et al 2010 but with parameters from papers and not re-fitted with our data .. 
+And now merging trait mean num and vect to have an complete mean trait value table 
+
+```{r warning=F}
+trait_final <- full_join(trait_transform, Trait_mean_vect, by = c("n_parcelle", "n_carre", "n_arbre") ) %>%
+  mutate(Dawkins = gsub("A","",Dawkins)) %>% 
+  mutate(Dawkins = gsub("B","",Dawkins)) %>% 
+  mutate(Dawkins = gsub("C","",Dawkins)) %>% 
+  mutate(Dawkins = as.factor(as.integer(Dawkins))) %>% 
+  mutate( basal_area = (pi* (diameter)^2)/4)
+
+#write.csv2(trait_final , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\Full_traits_transform.csv")
+
+```
+
+# environment data
+## environment fromparacou SIG 
+
+every environmental data have been calculated with dcm and dem with 1meter cells in 2015. Execpt for the wetness index here, so we remove the wetness index colum in this file and add the right one later. 
+
+```{r}
+environment <-read.csv(file.path(path, "Environment_paracou.csv"),header = T, dec = ".", sep=",") %>% 
+  dplyr::select(-wetness)
+
+
+environment_trait <- trait_final %>%  inner_join(environment, by = c("n_parcelle", "n_carre", "n_arbre"))
+
+
+```
+
+
+merging environmental data with transformed trait data, only 401 are in commun so one individual is missing lets found which one 
+
+```{r}
+trait_final %>% anti_join(environment_trait , by= c("n_parcelle", "n_carre", "n_arbre"))
+
+```
+
+So 14-2-459 is present in environment data base 
+
+## environment from neighbour basal area 
+
+```{r}
+G_neighbour <- read.csv(file.path(path, "Full_Gneighbour.csv"),header = T, dec = ".", sep=",")
+
+G_neighbour <- G_neighbour %>% 
+  dplyr::select(PointWeight, nNeighbors, GNeighbors, n_parcelle, n_carre, n_arbre )
+
+environment_trait <- G_neighbour %>% 
+  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
+
+#write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\environment_trait2.csv" )
+
+trait_transform%>%  anti_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
+
+```
+
+There is still the same individual that is missing.
+
+### competition index 
+
+```{r}
+environment_trait <- environment_trait %>% 
+  mutate(Competition = ((GNeighbors/ nNeighbors)/PointWeight)) %>% 
+  dplyr::select(-PointWeight, -nNeighbors, -GNeighbors)
+
+#write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment_trait2.csv" )
+```
+
+## adding d_gap 
+
+```{r}
+gap <- read.csv(file.path(path, "sympho_gap.csv"),header = T, dec = ".", sep=",")%>% 
+  dplyr::select(-X)
+
+environment_trait <- gap %>% 
+  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
+
+
+```
+
+
+## adding wetness
+
+```{r}
+wetness <-read.csv(file.path(path, "sympho_wetness.csv"),header = T, dec = ".", sep=",") %>% 
+  dplyr::select(-X)
+
+environment_trait <- wetness %>% 
+  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
+```
+
+
+# final file to use in every rmarkdown 
+
+there is an X colunm that is useless so we remove it 
+
+```{r}
+environment_trait <- environment_trait %>%
+  dplyr::select(-X)
+
+#write.csv(environment_trait, file ="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment_trait.csv" )
+```
+
+Now we have a data frame that combine functional trait value and some environmental trait value with the maximum observation we can 401. For example a column with topographic type could be added but it match with only 353 observations (don't no why because every symphonia point are included in topographic type polygons..) .Therefore thoses factor levels (bottomland; slope and hilltop) are  summarised in other topographic descriptor because it combine steepness and elevation measures .
