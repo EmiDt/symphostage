@@ -166,6 +166,14 @@ environment_trait <- wetness %>%
   inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
 ```
 
+## adding Allié 2015 gis data 
+
+```{r}
+gis <-read.csv(file.path(path, "environment_gis.csv"),header = T, dec = ",", sep=";")
+
+environment_trait <- gis %>% 
+  full_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
+```
 
 # final file to use in every rmarkdown 
 
@@ -175,7 +183,7 @@ there is an X colunm that is useless so we remove it
 environment_trait <- environment_trait %>%
   dplyr::select(-X)
 
-#write.csv(environment_trait, file ="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment_trait.csv" )
+write.csv(environment_trait, file ="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment_trait.csv" )
 ```
 
 Now we have a data frame that combine functional trait value and some environmental trait value with the maximum observation we can 401. For example a column with topographic type could be added but it match with only 353 observations (don't no why because every symphonia point are included in topographic type polygons..) .Therefore thoses factor levels (bottomland; slope and hilltop) are  summarised in other topographic descriptor because it combine steepness and elevation measures .
