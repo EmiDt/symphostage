@@ -175,6 +175,17 @@ environment_trait <- gis %>%
   full_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
 ```
 
+## adding habitat topo category
+
+```{r}
+topo <-read.csv(file.path(path, "sympho_topo.csv"),header = T, dec = ".", sep=",") %>%   dplyr::select(-X)
+
+environment_trait <- topo %>% 
+  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
+
+```
+
+
 # final file to use in every rmarkdown 
 
 there is an X colunm that is useless so we remove it 
