@@ -1,0 +1,238 @@
+---
+title: "redaction"
+output: html_document
+
+---
+```{r message = F , warning= FALSE}
+library(ggplot2)
+library(ggpubr)
+library(car)
+library(dplyr)
+library(citr)
+
+path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+```
+
+```{r}
+data <- read.csv(file.path(path, "environment_trait.csv"),header = T, dec = ".", sep=",")
+data2 <- data %>% 
+  filter(!is.na(Carbonmean)) %>% 
+  filter(!is.na(topo)) %>% 
+  filter(!is.na(Phosphorme))
+```
+
+
+# Is there an environmental gradient between habitat ? 
+
+First of all, as we are looking for environmental filtering on functional trait attribute, we need to sample along an environmental gradient defined as a gradual change in abiotic factors through space. This gradient allowed to compare how  and abiotic variation influence the functional trait distribution.
+So now we need to confirm that we have an abiotic gradient along our sample study area (Paracou). The basic relief in the guianan shild and espacially in french Guinana is the half-orange-shaped hill. It can be simply decomposed in three parts : bottomland, slope and hilltop. Our individual are spread in each sub-habitat and here we are going to test if there is some a significant mean difference between each of them. 
+
+D'après les courbes de niveaux, un découpage de la topographie en 3 grands ensembles a été établi : Plateau : altitudes relatives les plus fortes et pente faible à nulle ; Versant : pente moyenne à forte ; Zones basses : altitude faible, en général inférieur à 10 m, et pente faible à nulle;
+
+```{r}
+P <- data2$Phosphorme
+ C <- data2$Carbonmean
+wetness <- data2$wetness
+ topo <- data2$topo
+
+ Manova(lm(cbind(C, P , wetness )~ topo), type = "II")
+```
+Here we can se that p-value is below 0.5 so H0 is rejected, there is a significant difference between group means. 
+
+Or we can do several ANOVA test with bonferoni correction and then a tuheyHSD test to know which group area really different from another. The difference is that MANOVA take into count variable interaction, that maybe it is not pertinent here. 
+
+```{r echo=FALSE}
+(TukeyHSD(aov(lm(C~topo))))
+ggplot(data2, aes(x = topo, y =Carbonmean , fill = topo))+
+  geom_boxplot()+
+   stat_compare_means(method = "anova", 
+                     label.y = 3) +
+  stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = "Pente",
+                     label.y = 2.7)+
+   stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = "Bas fond",
+                     label.y = 2.9)
+```
+
+
+
+```{r echo=FALSE}
+(TukeyHSD(aov(lm(P~topo))))
+ggplot(data2, aes(x = topo, y =Phosphorme , fill = topo))+
+  geom_boxplot()+
+   stat_compare_means(method = "anova", 
+                     label.y = 7) +
+  stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = "Pente",
+                     label.y = 6)+
+   stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = "Bas fond",
+                     label.y = 6.5)
+```
+
+```{r echo=FALSE}
+(TukeyHSD(aov(lm(wetness~topo))))
+ggplot(data2, aes(x = topo, y =wetness , fill = topo))+
+  geom_boxplot()+
+   stat_compare_means(method = "anova", 
+                     label.y = 11) +
+  stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = "Pente",
+                     label.y = 9)+
+   stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = "Bas fond",
+                     label.y = 9.3)
+```
+
+
+```{r echo = F}
+(TukeyHSD(aov(lm(wetness~topo))))
+
+data %>% 
+  filter(!is.na(topo)) %>% 
+  ggplot(aes(x = topo, y =wetness , fill = topo))+
+  geom_boxplot()+
+   stat_compare_means(method = "anova", 
+                     label.y = 11) +
+  stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = "Pente",
+                     label.y = 9)+
+   stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = "Bas fond",
+                     label.y = 9.3)
+```
+
+t.test is not ideal because it compare to a reference group and I would like to compare each group between them like TukeyHSD. 
+But I think we can conclude that there is a real gradient for abiotic variable along our sampling area that can be divided in three groups or two. For Phosphorus concentration and wetness value are descressing when slope and altitude increased, from bottomland to hilltop  wherease this contrary for carbon concentration. 
+Therefore we need to be carefull because phophorus and carbon value are only on a subset of our sample effort. 
+
+```{r echo=F}
+lm(dem  ~ Phosphorme + Carbonmean + wetness, data= data2) %>% summary
+```
+To test this hypothesis of environmental gradient with continue variable , I choose dem , which depicts the topographic elevation. The linear model : dem ~ Phosphorme + Carbonmean + wetness is fitted with an ajdusted r-sqared of 0.72. With no contracdiction with our previous result, coefficient are negative for wetness and Phosphorus and postive for Carbon.
+
+How could I interpret why there is more phosphorus and less carbon on hilltop It means that watter run off only impact Phosphorus and not carbon that ?
+
+
+
+# Is there a modification of trait attribute along this abiotic gradient ? How does trait attribute are distributed along the environmental gradient ? 
+
+```{r echo=FALSE}
+data %>%  filter(!is.na(topo)) %>% 
+  filter(SLA < 400) %>% 
+ggplot( aes(x = topo, y =SLA , fill = topo))+
+  geom_boxplot()+
+   stat_compare_means(method = "anova", 
+                     label.y = 192) +
+  stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = ".all.",
+                     label.y = 187)+
+  geom_hline(yintercept = mean(data$SLA), linetype = 2)
+```
+
+
+As we can see on the plot mean SLA does not variate from the basal mean between topographic group, so for a fisrt conclusion abiotic parameter like wetness, C , P and dem seem to have no impact on SLA variation whereas leaf area and mass should increase in co-variation with
+soil C, N, P and exchangeable cations, as higher levels of these nutrients represent more optimal soil conditions. Souto et al (2009) find that SLA on Embothrium coccineum increased with N and decreased with soil C and P (R² = 0.39, n = 26; P < 0.05).
+
+```{r echo = F}
+lm(SLA~Carbonmean + Phosphorme, data2) %>%  summary
+```
+
+When we test this hypothesis on our dataset we found that it seems that there is no linear link( adjusted r² = 0.006543, n = 167; P = 0.216) between SLA and C and P soil concentration. 
+
+
+
+```{r echo=FALSE}
+TukeyHSD(aov(lm(LMDC~topo, data= data)))
+
+data %>%  filter(!is.na(topo)) %>% 
+  filter(SLA < 400) %>% 
+ggplot( aes(x = topo, y =LMDC , fill = topo))+
+  geom_boxplot()+
+   stat_compare_means(method = "anova", 
+                     label.y = 0.65) +
+  stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = ".all.",
+                     label.y = 0.6)+
+geom_hline(yintercept = mean(data$LMDC), linetype = 2)
+```
+
+
+
+```{r echo=FALSE}
+TukeyHSD(aov(lm(LT_mean~topo, data= data)))
+
+data %>%  filter(!is.na(topo)) %>% 
+  filter(SLA < 400) %>% 
+ggplot( aes(x = topo, y =LT_mean , fill = topo))+
+  geom_boxplot()+
+   stat_compare_means(method = "anova", 
+                     label.y = 525) +
+  stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = ".all.",
+                     label.y = 510)+
+geom_hline(yintercept = mean(data$LT_mean), linetype = 2)
+```
+
+
+# Which functional trait profile would describe an individual that only gamble on acquisition or on conservation ? 
+
+Westoby (1997) propose a new plant ecology strategy categorisation throught functional trait analysis named Leaf-Height-Seed (LHS) based one Specific Leaf Area (SLA), height of plant's canopy at maturity and seed masse. Unfortunatly all of this traits cannot always be measured,  consequently other maker as Leaf Dry Matter Content (LDMC) is used to depict plant ecology strategy (Westoby 1998; Weiher et al. 1999; Cornelissen et al. 2003). As Albert et al (2010), we are going to based our strategy profile on SLA and LDMC ratio. The first strategy is exploitative species that have hight SLA and low LDMC, which means leaves are compose by low-density tissues, have hight photosynthetic rates and hight growth rates, have a hight ressource acquisition capacity and are dominant in fertile areas (Grime et al., 1997 ; Reich et al., 1999). The second type of strategies is the conservative species, this one have low SLA value and hight LMDC. It correspond to dense leaf tissues, low growth rates, have a hight ressource conservation and are dominant in low fertility areas (Albert et al 2010). 
+
+# What is the strategy of our individuals ?
+
+Before I need to know what his a Hight or a Low value of SLA or LDMC, what is the reference is always against other species ? 
+
+```{r echo = F}
+data %>%  filter(SLA < 400) %>%
+  filter(!(LMDC < 0.25 |LMDC > 0.45)) %>% 
+ggplot( aes(SLA, LMDC,  size = diameter))+
+  geom_jitter()
+```
+As we can see on this graph, there is a quiet linear relation between SLA and LDMC and with tree diameter.Here diameter is used as a proxi of ontogenic developpment stage and here hight SLA value and low LDMC (exploitative species) seems to correspond smaller diameter and so younger tree. That is not so suprising because light availability is reduce in understorey layer and so individual need to maximise their acquisition capacity to grow fast reech the canopy. When individuals attein their liberation height, light is not limitant anymore and the ecological strategy seems to shift to conservative species profile with lower SLA and highter LDMC. 
+
+But I ma not sur that there is a real difference between diameter categories ... 
+
+Does it could have a bigger variance of SLA and LMDC value for smaller diameter due to light avaibility inegality in the understorey layer ? 
+
+# Is there an ecological strategy shift along the environmental gradient ? 
+
+As SLA is a function of LT and LDMC if some individuals are more influence by one or another SLA contributor and if there is an abiotic influence on this segregation.
+
+```{r message = F , warning= F}
+library(FactoMineR)
+library(factoextra)
+ACPdata <- data %>%  
+  dplyr::select(SLA,LT_mean, LMDC,topo) %>%
+  filter(SLA < 400) %>%
+  filter(!(LMDC < 0.25 |LMDC > 0.45)) %>% 
+  filter(!is.na(topo)) 
+
+SLA_ACP <- PCA(ACPdata, quali.sup = 4, graph = F)
+fviz_pca_biplot(SLA_ACP, axes = c(1, 2),habillage = 4, addEllipses =  T, col.var = "black")
+```
+We can see that SLA contribute to the first axis whereas LDMC and LT contribute equally to the second axis. With topographic catigories as a suplementary qualitative varibles biplot shows that individuals are divided along the SLA axis. Individuals located in bottomland seems to have lower value of SLA more influence by LT than those in slope and hilltop that seems to be more influence by LDMC.
+
+
+
+# Which factor influence trait distribution ? How each environmental factor influence the distribution of trait ? And which one influence it the most ?
+
+
+
+# In our case of woody tropical species which of LDMC and LT contribute the most to SLA ? 
+
+As N. Pérez-Harguindeguy et al. (2013) SLA is a function of LDMC and LT and both component can contribute to SLA to different degrees, depending on the habitat and plant group in question. 
+
+
