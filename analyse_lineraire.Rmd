@@ -41,7 +41,7 @@ path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
 environment_trait<- read.csv(file.path(path, "environment_trait.csv"),header = T, dec = ".", sep=",") %>%  dplyr::select(-aspect.y) %>% 
   dplyr::rename(aspect = "aspect.x")
 
-standar <- read.csv(file.path(path, "data_standar.csv"),header = T, dec = ".", sep=",") 
+data_standar <- read.csv(file.path(path, "data_standar.csv"),header = T, dec = ".", sep=",") 
 
 # sympho_gis <- environment_trait %>% 
 #   dplyr::select(n_parcelle, n_carre, n_arbre, Xutm, Yutm)
@@ -317,14 +317,6 @@ pairs(cbind(environment_standar[,4:9], trait_standar[,4:8]), lower.panel = panel
 
 Using standardized data and only uncorrelated data to avoid singularities error in multiplicative model 
 
-```{r}
-data_standar <- full_join(environment_standar,trait_standar, by = c("n_parcelle", "n_carre", "n_arbre")) 
-
-#write.csv(data_standar, file ="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\data_standar.csv")
-
-n <- nrow(data_standar)
-```
-
 ## SLA
 ### model 
 
@@ -339,7 +331,7 @@ For every tree sapling and early ontogenic  stage individual are in the uner lay
 
 ```{r SLA mixte echo=F}
 SLA_model <-lm(formula = SLA ~ aspect+diameter+ lBAL + lBAL:diameter+  aspect: diameter + d_creek + wetness + d_gap + d_gap:diameter+d_creek:diameter + wetness:diameter 
-    , data = data_standar[,4:9 &13])
+    , data = data_standar[,4:9 &14])
 
 summary(SLA_model)
 ```
@@ -351,7 +343,7 @@ In this SLA_model, a significative p-value of the t-test means that the coeffici
 So, we are going to remove variables withou significant coiefficient : wetness, lBAL, d_creek,d_gap, d_gap:diameter, diameter:wetness, aspect:diameter
 
 ```{r}
-SLA_model<- lm(formula = SLA ~  aspect + diameter+ lBAL:diameter + d_creek:diameter  , data = data_standar[,4:9 &13]) 
+SLA_model<- lm(formula = SLA ~  aspect + diameter+ lBAL:diameter + d_creek:diameter  , data = data_standar[,4:9 &14]) 
 
 summary(SLA_model)
 ```
@@ -390,7 +382,7 @@ So wetness , d_creek should influence thickness value as they are proxy of soil 
 
 ```{r}
 LT_model <- lm(LT_mean~ wetness + lBAL + d_creek  + diameter + aspect + aspect : diameter+
- d_gap + lBAL:diameter+ d_gap:diameter + diameter:wetness + diameter:d_creek , data=data_standar[,4:10])
+ d_gap + lBAL:diameter+ d_gap:diameter + diameter:wetness + diameter:d_creek , data=data_standar[,4:11])
 
 summary(LT_model)
 ```
@@ -399,7 +391,7 @@ summary(LT_model)
 
 ```{r}
 LT_model <- lm(LT_mean~ wetness + lBAL + d_creek  + diameter +
- diameter:lBAL , data=data_standar[, 4:10])
+ diameter:lBAL , data=data_standar[, 4:11])
 
 summary(LT_model)
 ```
@@ -422,29 +414,53 @@ plot(LT_model)
 
 ## LDMC 
 
-LDMC reflect the investment in dense tissue more than surface area so it would be more influence by soil water avlaibility than light and also by the ontogentic stage becasue young individual may have a strategy only focus on  growth and so photosynthetic capacity whereas older individual are emancipate from those constrains. 
+LDMC reflect the investment in dense tissue minvestment so it would be more influence by nutrient and water avalaibility (why ??) and by the ontogentic stage becasue young individual may have a strategy only focus on  growth and so photosynthetic capacity whereas older individual are emancipate from those constrains. 
 
 Thickness modulate leaf weight as this one is influence by light intensity and availaibility may be LDMC too ... 
 
-```{r}
-LDMC_model <- lm(LMDC~ wetness + d_creek + diameter + d_gap + lBAL + aspect+  diameter:lBAL + diameter:d_gap + wetness:diameter + d_creek:diameter, data = data_standar[, 4:9 & 12])
+```{r LDMC model 1}
+LDMC_model <- lm(LMDC~ wetness + d_creek + diameter + d_gap + lBAL + aspect+  diameter:lBAL + diameter:d_gap + wetness:diameter + d_creek:diameter, data = data_standar[, 4:9 & 13])
 
 summary(LDMC_model)
 ```
 
-```{r}
+```{r LDMC model 2}
 LDMC_model <- lm(formula = LMDC ~ wetness +  diameter + d_gap + 
     diameter:lBAL + d_creek:diameter, 
-    data = data_standar[, 4:9 & 12])
+    data = data_standar[, 4:9 & 13])
 
 summary(LDMC_model)
 ```
+ Coefficient : 
+  - wetness, negativ coefficient LMDC decreased when wetness increased so when tree are located in dryer place ie slope or hilltop
+  - diamter, positif coefficient LMDC increased when diameter increased which mean older tree seems to have more dense leaf tissues. It correspond to theecological strategy shift between under canopy layer tree ( young tree) and canopy or over canopy layer tree (aldult or post opening stage tree)
+  - d_gap, positive coefficient LMDC increase when distance to the gap increase too.  That is not an intuitive result ...
+  -diameter:lBAL, posititve coefficient so the impact of diameter increased  when lBAL increased. So leaf tissues would be more dense for a bigger tree with hight crwding neighbourhood.
+  -diameter:d_creek, negative coefficient so diameter effect on lDMC decresed when d_creek decreased too. As diameter have a positive effect (LMDC increase with diameter) it means that for a tree with a given diameter far from the creek LMDC value will be smaller than a tree with the same diamter close to the creek. Its corroborates wetness negativ coefficient and soil watter avalaibility influence LMDC value. 
+  
 
+```{r }
+plot(LDMC_model)
+```
 
 
 ## chloro content
 
+```{r chloro model 1 }
+chloro_model <- lm(Chloro_content~ wetness + d_creek + diameter + d_gap + lBAL + aspect+  diameter:lBAL + diameter:d_gap + wetness:diameter + d_creek:diameter, data = data_standar[, 4:9 & 12])
 
+summary(chloro_model)
+```
+```{r chloro model 2}
+chloro_model <- lm(formula = Chloro_content ~ wetness +  diameter +
+    diameter:lBAL + d_creek:diameter, 
+    data = data_standar[, 4:9 & 13])
+
+summary(chloro_model)
+```
+d_gap does not have a significant coefficient anymore.
+
+This is almost the same than LDMC, it is not so suprinsing because both are correlated (0.51, on pair panel)
 
 #rda 
 
