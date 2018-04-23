@@ -41,6 +41,8 @@ path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
 environment_trait<- read.csv(file.path(path, "environment_trait.csv"),header = T, dec = ".", sep=",") %>%  dplyr::select(-aspect.y) %>% 
   dplyr::rename(aspect = "aspect.x")
 
+standar <- read.csv(file.path(path, "data_standar.csv"),header = T, dec = ".", sep=",") 
+
 # sympho_gis <- environment_trait %>% 
 #   dplyr::select(n_parcelle, n_carre, n_arbre, Xutm, Yutm)
 # write.csv(sympho_gis, file="C:\\Users\\emduc\\Desktop\\sympho_gis.csv")
@@ -337,7 +339,7 @@ For every tree sapling and early ontogenic  stage individual are in the uner lay
 
 ```{r SLA mixte echo=F}
 SLA_model <-lm(formula = SLA ~ aspect+diameter+ lBAL + lBAL:diameter+  aspect: diameter + d_creek + wetness + d_gap + d_gap:diameter+d_creek:diameter + wetness:diameter 
-    , data = data_standar3[,4:10])
+    , data = data_standar[,4:9 &13])
 
 summary(SLA_model)
 ```
@@ -349,7 +351,7 @@ In this SLA_model, a significative p-value of the t-test means that the coeffici
 So, we are going to remove variables withou significant coiefficient : wetness, lBAL, d_creek,d_gap, d_gap:diameter, diameter:wetness, aspect:diameter
 
 ```{r}
-SLA_model<- lm(formula = SLA ~  aspect + diameter+ lBAL:diameter + d_creek:diameter  , data = data_standar3[,4:10]) 
+SLA_model<- lm(formula = SLA ~  aspect + diameter+ lBAL:diameter + d_creek:diameter  , data = data_standar[,4:9 &13]) 
 
 summary(SLA_model)
 ```
@@ -362,7 +364,7 @@ So SLA value can be explain by :
   
   - the interaction between diameter: lBAL , with a negative coefficient so the effect of diameter decrease when the LBAL value decrease too. For a given diameter , a tree with low neighbour crowding (lBAL) would have an highter SLA value than a same diameter with hight neighbors crowding. 
   
-  - diameter:creek, interaction has a positive coefficient so the effect of diameter increased on the SLA when the distance to the creek increase too. So for a given diameter, tree located far from the creek have smaller SLA value than tree with same diameter closer to the creek.
+  - diameter:creek, interaction has a positive coefficient so the effect of diameter increased on the SLA when the distance to the creek increase too. So for a given diameter, tree located far from the creek have smaller SLA value than tree with same diameter closer to the creek.(link with water use efficiency and water availability ?)
 
 ```{r}
 plot(SLA_model)
@@ -379,38 +381,6 @@ rbind(data_standar3[76,], data_standar3[151,],data_standar3[363,], data_standar3
 ```
 The outliers here correspond two SLA outliers spotted previously with boxplot 13_2_73 and 15_1_198 is also an LMDC outliers and the other one 7_3_2806  is not spotted by boxplot.
 
-## LMDC
-
-### step 
-
-```{r}
- data_standar2<- data_standar %>%
-  dplyr::select(-SLA, -LT_mean, -Chloro_content, -Area_exclude) 
-  
-# LMDC_model <- lm(LMDC~., data=data_standar2[,4:10])
-#  step(object = LMDC_model, direction = "backward", k= log(n))
-
-lm(formula = LMDC ~ wetness + diameter, data = data_standar2[, 
-    4:10]) %>% summary
-```
-
-
-```{r echo=FALSE}
-# LMDC_model <- lm(LMDC~wetness * lBAL * d_creek  * aspect *
-#      d_gap* diameter, data=data_standar2[,4:10])
-#  step(object = LMDC_model, direction = "backward", k= log(n))
-
-lm(formula = LMDC ~ wetness + lBAL + d_creek + diameter + wetness:d_creek + 
-    lBAL:diameter + d_creek:diameter, data = data_standar2[, 
-    4:10])%>% summary()
-```
-
-
-### model 
-
-LMDC and SLA influence the whole plant ecological strategy. Hight LMDC correspond to conservative species wich 
-
-
 ## LT
 ###model 
 
@@ -420,7 +390,7 @@ So wetness , d_creek should influence thickness value as they are proxy of soil 
 
 ```{r}
 LT_model <- lm(LT_mean~ wetness + lBAL + d_creek  + diameter + aspect + aspect : diameter+
- d_gap + lBAL:diameter+ d_gap:diameter  , data=data_standar1[,4:10])
+ d_gap + lBAL:diameter+ d_gap:diameter + diameter:wetness + diameter:d_creek , data=data_standar[,4:10])
 
 summary(LT_model)
 ```
@@ -429,7 +399,7 @@ summary(LT_model)
 
 ```{r}
 LT_model <- lm(LT_mean~ wetness + lBAL + d_creek  + diameter +
- diameter:lBAL , data=data_standar1[,4:10])
+ diameter:lBAL , data=data_standar[, 4:10])
 
 summary(LT_model)
 ```
@@ -449,51 +419,30 @@ plot(LT_model)
 
 
 
-## chloro content
-### step 
 
-```{r echo =FALSE}
-data_standar4<- data_standar %>%
-  dplyr::select(-SLA, -LMDC, -LT_mean, -Area) 
+## LDMC 
 
-#  Chloro_model <- lm(Chloro_content~., data=data_standar4)
-# step(object = Chloro_model, direction = "backward", k= log(n))
- 
-lm(formula = Chloro_content ~ wetness + diameter, data = data_standar4) %>%  summary
-```
-Once again only wetness and competition are selected, Adjusted R-squared:  0.09824
+LDMC reflect the investment in dense tissue more than surface area so it would be more influence by soil water avlaibility than light and also by the ontogentic stage becasue young individual may have a strategy only focus on  growth and so photosynthetic capacity whereas older individual are emancipate from those constrains. 
 
-```{r echo =FALSE}
-#  Chloro_model <- lm(Chloro_content~wetness * lBAL * d_creek  * diameter * 
-#  d_gap, data=data_standar4)
-# step(object = Chloro_model, direction = "backward", k= log(n))
-
-lm(formula = Chloro_content ~ wetness + lBAL + d_creek + diameter + 
-    lBAL:diameter + d_creek:diameter, data = data_standar4) %>% summary
-```
-
-d_creek, lBAL and their interaction with diameter have beeen added which raise the Adjusted R-squared to  0.1403.
-
-#  SMA
-
-"Relationship strength was quantified using correlation r2 and P values; relationship
-sample sizes given in Table 2). Relationship strength was quantified using correlation r2 and P values; relationship
-slopes were described by their standardized major axes
-(SMAs). SMA analyses are appropriate when the purpose
-of line-fitting is to summarize the relationship between
-two variables, as in many allometric studies (Sokal and
-Rohlf, 1995). An SMA line is the slope of the first princi-pal axis in a PCA analysis based on standardized data,
-fitted through the centroid of the data. SMA routines
-were run in a DOS-based computer package, (S)MATR
-(Falster et al., 2003)." Wright et al, 2007
-
+Thickness modulate leaf weight as this one is influence by light intensity and availaibility may be LDMC too ... 
 
 ```{r}
-test <- sma(SLA~LMDC, data=data_standar) 
-summary(test)
-plot(test, col ="purple")
-abline((lm(data_standar$SLA~data_standar$LMDC)))
+LDMC_model <- lm(LMDC~ wetness + d_creek + diameter + d_gap + lBAL + aspect+  diameter:lBAL + diameter:d_gap + wetness:diameter + d_creek:diameter, data = data_standar[, 4:9 & 12])
+
+summary(LDMC_model)
 ```
+
+```{r}
+LDMC_model <- lm(formula = LMDC ~ wetness +  diameter + d_gap + 
+    diameter:lBAL + d_creek:diameter, 
+    data = data_standar[, 4:9 & 12])
+
+summary(LDMC_model)
+```
+
+
+
+## chloro content
 
 
 
@@ -600,4 +549,64 @@ Ezekiel’s formula (Ezekiel 1930)for multivariate adjusted r-squared
 ```{r}
 RsquareAdj(rda_trait)$adj.r.squared
 ```
+
+# varcomp 
+
+```{r}
+library(ape)
+library(nlme)
+```
+
+```{r}
+varcomp.SLA<-varcomp(lme(SLA~1,
+random=~1|n_parcelle/morphotype_field/n_arbre, data = environment_trait ,na.action = na.omit),1)
+
+plot.varcomp(varcomp.SLA)
+```
+
+```{r}
+varcomp.LDMC<-varcomp(lme(LMDC~1,
+random=~1|n_parcelle/morphotype_field/n_arbre, data = environment_trait ,na.action = na.omit),1)
+
+plot(varcomp.LDMC)
+```
+
+```{r}
+varcomp.LT<-varcomp(lme(LT_mean~1,
+random=~1|n_parcelle/morphotype_field/n_arbre, data = environment_trait ,na.action = na.omit),1)
+
+plot.varcomp(varcomp.LT)
+```
+
+
+
+```{r}
+varcomp.Area<-varcomp(lme(Area_exclude~1,
+random=~1|n_parcelle/morphotype_field/n_arbre, data = environment_trait ,na.action = na.omit),1)
+
+plot.varcomp(varcomp.Area)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
