@@ -59,8 +59,8 @@ As we have diameter data for our trees, we can apply this allometry and used the
 
 
 ```{r}
-environment_trait <- environment_trait %>% 
-  mutate( Height = 5.34*(environment_trait$diameter)^0.471)
+# environment_trait <- environment_trait %>% 
+#   mutate( Height = 5.34*(environment_trait$diameter)^0.471)
 ```
 
 Also as we know the coefficient b, we can add an dummy variable to category in young or adult tree which would be a first clue to deal with the ontogenic effect. 
@@ -74,8 +74,8 @@ Hl = 23.75 ; Hg = 28.16 ; Dg = 34.37
 So for every tree that are going to be under this value I will consider them as young individual and the other one like adulte with a dummy variable.
 
 ```{r}
-environment_trait <- environment_trait %>%  
-  mutate (adulte = ifelse((diameter < 34.37 | Height < 28.16), 0,1))
+# environment_trait <- environment_trait %>%  
+#   mutate (adulte = ifelse((diameter < 34.37 | Height < 28.16), 0,1))
 ```
 
 
@@ -143,7 +143,7 @@ environment_trait <- environment_trait %>%
 
 ### e)  Area 
 
-```{r LA outliers message = FALSE}
+```{r LA outliers, message = FALSE}
 outliers_name <- environment_trait$ID
 boxplot.with.outlier.label(environment_trait$Area_exclude,outliers_name)%$% 
 data.frame(ID = outlier_df$label_name)%>%  inner_join((environment_trait %>% dplyr::select(ID, Area_exclude)), by = "ID") %>% 
@@ -329,7 +329,7 @@ For every tree sapling and early ontogenic  stage individual are in the uner lay
 
 
 
-```{r SLA mixte echo=F}
+```{r SLA mixte ,echo=F}
 SLA_model <-lm(formula = SLA ~ aspect+diameter+ lBAL + lBAL:diameter+  aspect: diameter + d_creek + wetness + d_gap + d_gap:diameter+d_creek:diameter + wetness:diameter 
     , data = data_standar[,4:9 &14])
 
@@ -369,7 +369,7 @@ plot(SLA_model)
 As the residuals analysis of the SLA_model seems to good, we can start the result interpretation.
 
 ```{r}
-rbind(data_standar3[76,], data_standar3[151,],data_standar3[363,], data_standar3[175,])
+rbind(data_standar[76,], data_standar[151,],data_standar[363,], data_standar[175,])
 ```
 The outliers here correspond two SLA outliers spotted previously with boxplot 13_2_73 and 15_1_198 is also an LMDC outliers and the other one 7_3_2806  is not spotted by boxplot.
 
@@ -467,7 +467,7 @@ This is almost the same than LDMC, it is not so suprinsing because both are corr
 ## data checking 
 
 
-```{r message = FALSE}
+```{r , message = FALSE ,eval= F}
 library(faraway)
 sort(faraway::vif(environment_standar[,4:10]) )
 ```
@@ -571,41 +571,105 @@ RsquareAdj(rda_trait)$adj.r.squared
 ```{r}
 library(ape)
 library(nlme)
+
+varcomp_data <- read.csv(file.path(path, "varcomp_data.csv"),header = T, dec = ".", sep=",") %>% 
+filter(SLA < 400) %>% 
+filter(!(LMDC < 0.17 |LMDC > 0.55)) %>% 
+ filter(! Chloro_content < 40.5)
 ```
+
+## normality test 
+
+```{r}
+hist((varcomp_data$SLA))
+hist((varcomp_data$LMDC))
+hist((varcomp_data$Chloro_content))
+hist((varcomp_data$LT_mean))
+hist(log10(varcomp_data$Area_exclude))
+```
+
+execpt for leaf area distribution that is right squewed , other distribution are not so far from "normal distribution shape"
+```{r}
+shapiro.test(sqrt(varcomp_data$SLA))
+shapiro.test((varcomp_data$LMDC))
+shapiro.test(sqrt(varcomp_data$Chloro_content))
+shapiro.test((varcomp_data$LT_mean))
+shapiro.test(log10(varcomp_data$Area_exclude))
+```
+
+Even if shapiro test do not confirm the normal distribution even after log or sqrt transformation, actual distribution are acceptable to continue parametric test as variance component analysis. 
+
+```{r}
+varcomp_data <- varcomp_data %>% 
+  mutate(SLA = sqrt(SLA), Chloro_content= sqrt(Chloro_content), Area_exclude=log10(Area_exclude))
+```
+
+## standar deviation test / homoscedasticity test
+
+Heteroscedasticity is much less of a problem when you have a balanced design (equal sample sizes in each group). Early results suggested that heteroscedasticity was not a problem at all with a balanced design (Glass et al. 1972), but later results found that large amounts of heteroscedasticity can inflate the false positive rate, even when the sample sizes are equal (Harwell et al. 1992)
+
+Performs an F test to compare the variances of two samples from normal populations.
+
+Performs Bartlett's test of the null that the variances in each of the groups (samples) are the same.
+
+Bartlett's test is not a particularly good one, because it is sensitive to departures from normality as well as heteroscedasticity; you shouldn't panic just because you have a significant Bartlett's test. It may be more helpful to use Bartlett's test to see what effect different transformations have on the heteroscedasticity; you can choose the transformation with the highest (least significant) P value for Bartlett's test.
+
+The test has the null hypothesis that the variances are equal and the alterntive hypothesis that they are not equal.
+```{r}
+data_barlett <- varcomp_data  %>% dplyr::select(n_parcelle, n_carre, n_arbre, SLA, LMDC, LT_mean, Area_exclude, Chloro_content) %>%  mutate(ID = paste(n_parcelle, n_carre, n_arbre, sep="_")) %>% dplyr::select(-n_parcelle,-n_carre,-n_arbre)
+
+data_barlett <-reshape::melt(data_barlett,  id=c("ID"))
+
+bartlett.test(data_barlett$value, data_barlett$variable)
+
+```
+here p-value is significant so H0 is rejected , variances are not equal.
+
+
+## varcomp analysis
 
 ```{r}
 varcomp.SLA<-varcomp(lme(SLA~1,
-random=~1|n_parcelle/morphotype_field/n_arbre, data = environment_trait ,na.action = na.omit),1)
-
-plot.varcomp(varcomp.SLA)
+random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 ```
 
 ```{r}
 varcomp.LDMC<-varcomp(lme(LMDC~1,
-random=~1|n_parcelle/morphotype_field/n_arbre, data = environment_trait ,na.action = na.omit),1)
-
-plot(varcomp.LDMC)
+random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 ```
 
 ```{r}
 varcomp.LT<-varcomp(lme(LT_mean~1,
-random=~1|n_parcelle/morphotype_field/n_arbre, data = environment_trait ,na.action = na.omit),1)
-
-plot.varcomp(varcomp.LT)
+random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 ```
-
 
 
 ```{r}
 varcomp.Area<-varcomp(lme(Area_exclude~1,
-random=~1|n_parcelle/morphotype_field/n_arbre, data = environment_trait ,na.action = na.omit),1)
-
-plot.varcomp(varcomp.Area)
+random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 ```
 
 
+```{r}
+
+varcomp_resu <- as.data.frame(cbind(varcomp.Area, varcomp.LDMC, varcomp.LT, varcomp.SLA))
+
+  varcomp_resu <- varcomp_resu %>% mutate( niveau = rownames(varcomp_resu)) %>% 
+    dplyr::rename(Area = "varcomp.Area", LT="varcomp.LT", LDMC = "varcomp.LDMC", SLA = "varcomp.SLA")
+
+varcomp_resu <- reshape::melt(varcomp_resu,  id=c("niveau")) %>% 
+  mutate(value = as.integer(value *100))
+  
+
+```
 
 
+```{r}
+ggplot(varcomp_resu,aes(x = variable, y = value , fill = niveau ))+
+  geom_bar(stat = "identity")+
+  labs(title = "Variance component analysis", y = "fraction of the total variance explained
+       by each scale (value*100) ", x= "functional trait")
+```
 
 
 

@@ -121,8 +121,8 @@ There is still the same individual that is missing.
 
 ```{r}
 environment_trait <- environment_trait %>% 
-  mutate(Competition = ((GNeighbors/ nNeighbors)/PointWeight)) %>% 
-  dplyr::select(-PointWeight, -nNeighbors, -GNeighbors)
+  dplyr::rename(lBAL = GNeighbors) %>% 
+  dplyr::select(-PointWeight, -nNeighbors)
 
 #write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment_trait2.csv" )
 ```
@@ -183,6 +183,15 @@ topo <-read.csv(file.path(path, "sympho_topo.csv"),header = T, dec = ".", sep=",
 environment_trait <- topo %>% 
   inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
 
+```
+
+# adding hillshade and new aspect
+
+```{r}
+hillshade <-read.csv(file.path(path, "sympho_ombre.csv"),header = T, dec = ",", sep=";")
+
+environment_trait <- hillshade  %>% 
+  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
 ```
 
 
