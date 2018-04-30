@@ -1,0 +1,55 @@
+---
+title: "LMDC model"
+output: html_document
+---
+# option 
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+
+library(dplyr)
+library(ggplot2)
+library(car)
+
+path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+```
+
+```{r}
+data_standar <- read.csv(file.path(path, "data_standar.csv"),header = T, dec = ".", sep=",")%>%  mutate(Dawkins = as.factor(Dawkins))
+```
+
+
+LDMC reflect the investment in dense tissue minvestment so it would be more influence by nutrient and water avalaibility (why ??) and by the ontogentic stage becasue young individual may have a strategy only focus on  growth and so photosynthetic capacity whereas older individual are emancipate from those constrains. 
+
+Thickness modulate leaf weight as this one is influence by light intensity and availaibility may be LDMC too ... 
+
+```{r LDMC model 1}
+LDMC_model <- lm(LMDC~ Dawkins + ombrage + wetness + d_creek + diameter + d_gap + lBAL +  diameter:lBAL + diameter:d_gap + wetness:diameter + d_creek:diameter, data = data_standar)
+
+summary(LDMC_model)
+```
+
+```{r LDMC model 2}
+LDMC_model <- lm(formula = LMDC ~ Dawkins + wetness  + 
+    diameter:lBAL , 
+    data = data_standar)
+
+summary(LDMC_model)
+```
+ Coefficient : 
+  - wetness, negativ coefficient LMDC decreased when wetness increased so when tree are located in dryer place ie slope or hilltop
+  
+ 
+  -diameter:lBAL, posititve coefficient so the impact of diameter increased  when lBAL increased. So leaf tissues would be more dense for a bigger tree with hight crwding neighbourhood.
+  
+  
+
+```{r }
+par(mfrow = c(2,2))
+plot(LDMC_model)
+```
+
+```{r}
+
+```
+
