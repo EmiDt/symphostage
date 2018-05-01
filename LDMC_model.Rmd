@@ -16,10 +16,13 @@ path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
 
 ```{r}
 data_standar <- read.csv(file.path(path, "data_standar.csv"),header = T, dec = ".", sep=",")%>%  mutate(Dawkins = as.factor(Dawkins))
+
+soil_data <- read.csv(file.path(path, "envi_soil.csv"),header = T, dec = ".", sep=",")%>%  mutate(Dawkins = as.factor(Dawkins))
 ```
 
 
-LDMC reflect the investment in dense tissue minvestment so it would be more influence by nutrient and water avalaibility (why ??) and by the ontogentic stage becasue young individual may have a strategy only focus on  growth and so photosynthetic capacity whereas older individual are emancipate from those constrains. 
+LDMC reflect the investment in dense tissue 
+influenced by nutrient and water avalaibility  and by the ontogentic stage becasue young individual may have a strategy only focus on  growth and so photosynthetic capacity whereas older individual are emancipate from those constrains. 
 
 Thickness modulate leaf weight as this one is influence by light intensity and availaibility may be LDMC too ... 
 
@@ -30,11 +33,13 @@ summary(LDMC_model)
 ```
 
 ```{r LDMC model 2}
-LDMC_model <- lm(formula = LMDC ~ Dawkins + wetness  + 
+LDMC_model <- lm(formula = LMDC ~ Dawkins + wetness  + d_gap + lBAL+
     diameter:lBAL , 
     data = data_standar)
 
 summary(LDMC_model)
+
+AIC(LDMC_model)
 ```
  Coefficient : 
   - wetness, negativ coefficient LMDC decreased when wetness increased so when tree are located in dryer place ie slope or hilltop
@@ -50,6 +55,27 @@ plot(LDMC_model)
 ```
 
 ```{r}
+step_data <- data_standar %>%  dplyr::select(-X, -n_parcelle, -n_carre, -n_arbre, -LT_mean, -SLA, -Area_exclude, -Chloro_content, -ID)
 
+LDMC_full <- lm(formula = LMDC ~., data = step_data)
+
+step(LDMC_full, data = step_data , direction = "backward")
+```
+
+```{r}
+summary(lm(formula = LMDC ~ Dawkins + wetness + lBAL + d_gap, data = step_data))
+```
+#soil 
+
+```{r eval=FALSE, include=FALSE}
+step_data <- soil_data %>%  dplyr::select(-X, -n_parcelle, -n_carre, -n_arbre, -LT_mean, -SLA, -Area_exclude, -Chloro_content) %>% filter(!is.na(Dawkins))
+
+LDMC_full <- lm(formula = LMDC ~., data = step_data)
+
+step(LDMC_full, data = step_data , direction = "backward")
+```
+
+```{r eval=FALSE, include=FALSE}
+summary(lm(formula = LMDC ~ Dawkins + wetness + lBAL + ombrage, data = step_data))
 ```
 

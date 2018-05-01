@@ -36,36 +36,15 @@ path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
 # summary(DataParacou$n_parcelle)
 # save(paracoutree, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\paracou_data\\paracoutree.RData")
 
-load(file.path(path, "paracou_data", "paracoutree.RData")) 
+load(file.path(path, "paracou_data\\paracoutree.RData")) 
 
-symphonia_stage <- read.csv(file.path(path, "Full_traits_data.csv"),header = T, dec = ",", sep=";")%>%  group_by(n_parcelle, n_carre, n_arbre) %>% 
-  summarize() %>% 
+symphonia_stage <- read.csv(file.path(path, "data_merging\\Full_traits_data.csv"),header = T, dec = ",", sep=";")
+
+symphonia_stage <- symphonia_stage %>%  group_by(n_parcelle, n_carre, n_arbre) %>% 
+ dplyr::summarize() %>% 
   mutate(ID = paste(n_parcelle, n_carre, n_arbre, sep="_"))
 ```
-## data selection via paracou database
 
-```{r data boucle Marcon}
-# Creation d'un wmppp
-if (!any(is.na(pingr::ping_port("sql.ecofog.gf", port=1433)))) {
-  # Si le serveur sql.ecofog.gf est accessible
-  Paracou2df("Plot='6' AND CensusYear=2016") %>%
-    # Arbres vivants
-    filter(CodeAlive == TRUE) %>%
-    # Variables utiles
-    select(Plot, SubPlot:Yfield, Family:Species, CircCorr) %>%
-    # Nom complet des especes
-    unite(col = spName, Family, Genus, Species, remove = FALSE) %>%
-    # Champs d'un wmppp. Le poids est la surface terriere
-    mutate(X=Xfield, Y=Yfield, PointType=as.factor(spName),
-           PointWeight=pi*(CircCorr/pi/2)^2, PointName=idTree) %>%
-    dbmss::wmppp(window = owin(c(0,250), c(0,250),
-                               unitname=c("metre", "metres"))) -> Paracou6
-} else {
-  # Données dans le package Spatdiv
-  devtools::install_github("EricMarcon/SpatDiv")
-  library("SpatDiv")
-}
-```
 
 
 
@@ -78,15 +57,15 @@ Paracoutest <- paracoutree %>%
   filter(code_vivant ==1) %>% 
   mutate(species = paste(Genre, Espece, sep="_")) %>% 
   dplyr::select(n_parcelle, n_carre, n_arbre, X, Y, circ_corr, species) %>% 
-  filter(n_parcelle == 16) %>% 
+  filter(n_parcelle == 1) %>% 
   mutate( PointWeight = (circ_corr)^2/(4*pi)) %>% 
   mutate( PointName = paste(n_parcelle, n_carre, n_arbre, sep="_")) %>%
-  rename( PointType = species)
+  dplyr::rename( PointType = species)
 
 rownames(Paracoutest) <- Paracoutest$PointName
-Paracoutest <- dbmss::wmppp(Paracoutest, window = owin(c(0,115), c(4,109), unitname=c("metres", "metres")))
+Paracoutest <- dbmss::wmppp(Paracoutest, window = owin(c(0,250), c(0,250), unitname=c("metres", "metres")))
 ```
-
+owin(c(0,115), c(4,109)
 # Définition du voisinage
 
 ```{r}
@@ -99,6 +78,7 @@ rVoisinage <- 25
 
 ```{r}
 Distances <- pairdist(Paracoutest)
+ 
 ```
 
 ## Matrice de voisinage (25m)
@@ -112,10 +92,9 @@ Voisins <- (Distances <= rVoisinage) # inférieur ou égale
   # # Variante : seulement les gros arbres
   # Voisins <- (Distances <= rVoisinage) & (Paracoutest$marks$PointWeight > 1000)
   # 
-  # # Variante 2 : les symphonia
+   Variante 2 : les symphonia
   # EstSymphonia <- logical(Paracoutest$n) #vecteur de la longueur de paracoutest ici 3540
-  # EstSymphonia[grep("Symphonia_", Paracoutest$marks$PointType)] <- TRUE #Èremplacement par TRUE des place de dans le vecteur qui
-  # #corresponde à celle dans lesquelles il y a le pattern Symphonia_
+  # EstSymphonia[grep("Symphonia_", Paracoutest$marks$PointType)] <- TRUE #remplacement par TRUE des place de dans le vecteur qui corresponde à celle dans lesquelles il y a le pattern Symphonia_
   # Voisins <- (Distances <= rVoisinage) & EstSymphonia # on selectionne dans la matrice voisin ceux qui répondent aux 2 conditions
   
   
@@ -129,7 +108,7 @@ diag(Voisins) <- FALSE
 
 
 ```{r}
-Gvoisins <- apply(Voisins, 2, function(EstVoisin) sum(Paracoutest[EstVoisin]$marks$PointWeight))
+Hegyi  <- apply(Voisins, 2, function(EstVoisin) sum(Paracoutest[EstVoisin]$marks$PointWeight/Distances[EstVoisin]))
 ```
 
 # 2 : correction des effets de bord
@@ -154,13 +133,14 @@ Corrections <- vapply(1:Paracoutest$n, Correction, 0)
 
 ## Surface terrière corrigée ajoutée au wmppp
 ```{r}
-Paracoutest$marks$GNeighbors <- Gvoisins*Corrections
+#Paracoutest$marks$GNeighbors <- Gvoisins*Corrections
+Paracoutest$marks$GNeighbors <- Hegyi*Corrections
 ```
 
 ## Nombre de voisins
 
 ```{r}
-Paracoutest$marks$nNeighbors <- colSums(Voisins)*Corrections
+#Paracoutest$marks$nNeighbors <- colSums(Voisins)*Corrections
 ```
 
 ##Nombre d'espece de voisin différent 
@@ -191,7 +171,7 @@ P_Gneighbour <- P_Gneighbour %>%
  G_neighbour16 <-P_Gneighbour %>% 
   inner_join(symphonia_stage, by = "ID")
 
-#save(G_neighbour16, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\G_neighbour_data\\G_neighbour16.Rdata" )
+save(G_neighbour16, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\G_neighbour_data\\G_neighbour16.Rdata" )
 ```
 
 
@@ -201,7 +181,7 @@ P_Gneighbour <- P_Gneighbour %>%
 ```{r}
 #load(file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\G_neighbour_data\\G_neighbour16.RData") 
 
-Full_Gneighbour <- rbind(G_neighbour1,G_neighbour10, G_neighbour2, G_neighbour3, G_neighbour4, G_neighbour5, G_neighbour6,G_neighbour7, G_neighbour8, G_neighbour9, G_neighbour11, G_neighbour12, G_neighbour13, G_neighbour14, G_neighbour15, G_neighbour16)
+# Full_Gneighbour <- rbind(G_neighbour1,G_neighbour10, G_neighbour2, G_neighbour3, G_neighbour4, G_neighbour5, G_neighbour6,G_neighbour7, G_neighbour8, G_neighbour9, G_neighbour11, G_neighbour12, G_neighbour13, G_neighbour14, G_neighbour15, G_neighbour16)
 
 # write.csv(Full_Gneighbour, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\G_neighbour_data\\Full_Gneighbour.csv")
 
