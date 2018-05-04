@@ -3,6 +3,8 @@ title: "analysis 2"
 output: html_document
 ---
 
+
+
 ```{r setup, include=FALSE}
 rm(list = ls())
 knitr::opts_chunk$set(echo = TRUE)
@@ -15,6 +17,7 @@ library(RColorBrewer)
 
 path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
 ```
+
 
 ```{r}
 environment_trait<- read.csv(file.path(path, "environment_trait.csv"),header = T, dec = ".", sep=",") %>%  mutate(Dawkins = as.factor(Dawkins))
@@ -88,6 +91,7 @@ environment_trait %>%  mutate( n_parcelle = as.factor(n_parcelle)) %>%
   geom_hline(yintercept = mean(environment_trait$LT_mean), linetype = 2)
 ```
 
+
 ```{r}
 environment_trait %>%  mutate( n_parcelle = as.factor(n_parcelle)) %>%
   ggplot( aes(n_parcelle,diameter, fill = LT_mean))+
@@ -102,6 +106,7 @@ environment_trait %>%  mutate( n_parcelle = as.factor(n_parcelle)) %>%
 ```
 
 
+
 ```{r}
 environment_trait %>%  mutate( n_parcelle = as.factor(n_parcelle)) %>%
   ggplot( aes(topo,LT_mean))+
@@ -114,15 +119,78 @@ environment_trait %>%  mutate( n_parcelle = as.factor(n_parcelle)) %>%
                      label.y = 505)+
   geom_hline(yintercept = mean(environment_trait$LT_mean), linetype = 2)
 
+TukeyHSD(aov(lm(LT_mean~topo, data=environment_trait)))
+
 ```
 
 ```{r}
-environment_trait %>%  mutate( n_parcelle = as.factor(n_parcelle)) %>%
-ggplot(aes(x=n_parcelle, fill=topo)) +
-  geom_bar(stat = "count")
+tab_topo = matrix(NA, ncol = 5, nrow = 16)
+tab_topo <- as.data.frame(tab_topo)
+names(tab_topo) <- c("parcelle","N_individual","freq_bottomland", "freq_slope", "freq_hilltop")
+tab_topo[,1] <- 1:16
+for(i in 1:16){
+tab_topo[i,2] <- environment_trait%>% filter(n_parcelle == i) %>%  nrow
+
+tab_topo[i,3] <- (environment_trait%>% filter(n_parcelle == i) %>% filter(topo== "Bas fond") %>% nrow() / tab_topo[i,2] )*100
+
+tab_topo[i,4] <- (environment_trait%>% filter(n_parcelle == i) %>% filter(topo== "Pente") %>% nrow() / tab_topo[i,2])*100
+
+tab_topo[i,5] <- (environment_trait%>% filter(n_parcelle == i) %>% filter(topo== "Plateau") %>% nrow() / tab_topo[i,2])*100
+}
+
+tab_topo <-tab_topo %>% mutate( parcelle = as.factor(parcelle), freq_bottomland = as.integer(freq_bottomland) , freq_slope = as.integer(freq_slope), freq_hilltop = as.integer(freq_hilltop)) %>% 
+  reshape2::melt(id = c("parcelle", "N_individual"), variable.name = "frequence") %>% 
+  dplyr::select(-N_individual)
+  #mutate(f_value = as.factor(value)) 
+
+ggplot(tab_topo, aes(parcelle,value, fill= frequence))+
+  geom_bar(stat = "identity")+
+   geom_text(aes(label=value))
 ```
 
-proportion c'est nbtot arbre parcelle et nb dans chaque type topo 
+
+```{r}
+environment_trait %>%  mutate( n_parcelle = as.factor(n_parcelle)) %>%
+ggplot(aes(x=morphotype_field ,y = LT_mean)) +
+  geom_boxplot()+
+    stat_compare_means(method = "anova", 
+                     label.y = 525, label.x = 2) +
+  stat_compare_means(method = "t.test", 
+                     aes(label = ..p.signif..),
+                     ref.group = ".all.",
+                     label.y = 505)+
+  geom_hline(yintercept = mean(environment_trait$LT_mean), linetype = 2)
+
+TukeyHSD(aov(lm(LT_mean~morphotype_field, data = environment_trait)))
+```
+
+
+
+```{r}
+tab = matrix(NA, ncol = 5, nrow = 16)
+tab <- as.data.frame(tab)
+names(tab) <- c("parcelle","N_individual","freq_G", "freq_Sp1", "freq_SG")
+tab[,1] <- 1:16
+for(i in 1:16){
+tab[i,2] <- environment_trait%>% filter(n_parcelle == i) %>%  nrow
+
+tab[i,3] <- (environment_trait%>% filter(n_parcelle == i) %>% filter(morphotype_field == "G") %>% nrow() / tab[i,2] )*100
+
+tab[i,4] <- (environment_trait%>% filter(n_parcelle == i) %>% filter(morphotype_field == "S") %>% nrow() / tab[i,2])*100
+
+tab[i,5] <- (environment_trait%>% filter(n_parcelle == i) %>% filter(morphotype_field == "SG") %>% nrow() / tab[i,2])*100
+}
+
+tab %<>% mutate( parcelle = as.factor(parcelle), freq_Sp1 = as.integer(freq_Sp1) , freq_SG = as.integer(freq_SG), freq_G = as.integer(freq_G)) %>% 
+  reshape2::melt(id = c("parcelle", "N_individual"), variable.name = "frequence") %>% 
+  dplyr::select(-N_individual)
+  #mutate(f_value = as.factor(value)) 
+
+ggplot(df_cumsum, aes(parcelle,value, fill= frequence))+
+  geom_bar(stat = "identity")+
+   geom_text(aes(label=value))
+```
+
 
 
 ```{r}
@@ -133,21 +201,39 @@ environment_trait %>%  filter(n_parcelle != "16") %>%
   geom_boxplot()
 ```
 
+
 ```{r}
 library(tidyverse)
 library(scales)
 # environment_trait2 <- read_csv("data/environment_trait2.csv")
-Measures_Individuals2 <- read.csv(file.path(path, "Measures - Individuals.csv"),header = T, dec = ".", sep=",") %>%  rename( n_parcelle = "Plot" , n_carre = "Subplot" , n_arbre = "Tree")
-data <- left_join(environment_trait, Measures_Individuals2, 
- by = c("n_parcelle" , 
- "n_carre" , "n_arbre")) %>% 
+Measures_Individuals2 <- read.csv(file.path(path, "Measures - Individuals.csv"),header = T, dec = ".", sep=",") %>% 
+  dplyr::rename( n_parcelle = "Plot" , n_carre = "Subplot" , n_arbre = "Tree")
+
+data <- left_join(environment_trait, Measures_Individuals2, by = c("n_parcelle" , "n_carre" , "n_arbre")) %>% 
   mutate( n_parcelle = as.factor(n_parcelle))
+
 ggplot(data, aes(as.Date(data$Date, format = "%d/%m/%Y"), LT_mean, color = n_parcelle)) + 
 geom_point() +
-scale_x_date(labels = date_format("%b"))
+scale_x_date(labels = date_format("%b"))+
+   geom_text(aes(label=n_parcelle))
 
   
 ```
+
+```{r}
+data %>% 
+  select(Date, n_parcelle, LT_mean, SLA, LMDC, Chloro_content, Area_exclude) %>% 
+  mutate( n_parcelle = as.factor(n_parcelle)) %>% 
+  filter(SLA < 400) %>% 
+  filter(!(LMDC < 0.17 |LMDC > 0.55)) %>% 
+ filter(! Chloro_content < 40.5) %>% 
+  reshape2::melt(id = c("Date", "n_parcelle"), variable.name = "Trait") %>% 
+  ggplot(aes(as.Date(Date, format = "%d/%m/%Y"), value, col = n_parcelle)) +
+  geom_point() +
+  scale_x_date(labels = date_format("%b")) +
+  facet_wrap(~Trait, scales = "free")
+```
+
 
 # topo / morphotype 
 
@@ -182,6 +268,7 @@ pairs(environment_trait[,c("topo","dem","alt_creek","morphotype", "morphotype_fi
 ```
 #varcomp morphotype
 
+
 ```{r}
 library(ape)
 library(nlme)
@@ -189,7 +276,7 @@ library(nlme)
 varcomp_data <- read.csv(file.path(path, "varcomp_data.csv"),header = T, dec = ".", sep=",") %>% 
 filter(SLA < 400) %>% 
 filter(!(LMDC < 0.17 |LMDC > 0.55)) %>% 
- filter(! Chloro_content < 40.5)
+ filter(! Chloro_content < 40.5) 
 
  
 
@@ -228,6 +315,7 @@ random=~1|n_parcelle/morphotype/n_arbre/n_feuille, data = varcomp_data ,na.actio
 ```
 
 
+
 ```{r varcomp resu }
 
 varcomp_resu <- as.data.frame(cbind(varcomp.Area, varcomp.LDMC, varcomp.LT, varcomp.SLA, varcomp.Chloro))
@@ -243,6 +331,7 @@ varcomp_resu <- reshape::melt(varcomp_resu,  id=c("niveau")) %>%
   mutate(sum.value = cumsum(value1))
   
 ```
+
 
 
 ```{r varcomp plot }
@@ -353,5 +442,8 @@ sd_data <- environment_trait %>%
 
 cv_data <- CV(mean = mean_data , sd= sd_data)
 ```
+
+
+
 
 
