@@ -1,0 +1,601 @@
+---
+title: "Model_multiplicatif"
+author: "Emilie Ducouret"
+date: "10 mai 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+
+library(dplyr)
+library(FactoMineR)
+library(factoextra)
+library(ggplot2)
+library(ggpubr)
+library(RColorBrewer)
+library("gridExtra")
+library("cowplot")
+library(kableExtra)
+library(ggrepel)
+
+path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+
+```
+
+
+```{r include=FALSE}
+environment_trait<- read.csv(file.path(path, "environment_trait.csv"),header = T, dec = ".", sep=";") %>% 
+  mutate(Dawkins = as.factor(Dawkins), ID= as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>% 
+  rename(LDMC = LMDC , LT = LT_mean , LA = Area_exclude , Cc = Chloro_content, BT = Bark_thickness, BD = Bark_infra_density, WD = Wood_infra_density, Carbon = Carbonmean , Phosphorus = Phosphorme) %>% 
+  dplyr::select(-flow_accum , -X , -ombrage, -wtd , -d_log_gap, -hydromorphy , -waterlog , -aspect , -drainages - basal_area, -wood_presence)
+
+environment_trait$SLA[which(environment_trait$ID == "11_1_742"| environment_trait$ID == "11_4_983")] <- NA
+
+environment_trait$LDMC[which(environment_trait$ID == "2_3_236" |environment_trait$ID == "1_2_387")] <- NA
+
+environment_trait$Cc[which(environment_trait$ID == "15_1_637")] <- NA
+
+environment_trait$Dawkins[which(environment_trait$ID == "15_1_198")] <- "5"
+
+#environment_trait %>%  filter( ID == "11_4_983" |ID == "11_1_742" | ID == "2_3_236" |ID == "1_2_387" |ID == "15_1_637" |ID == "15_1_198" )
+```
+
+
+```{r include=FALSE}
+data_standar<- environment_trait %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre,Branch_diameter,  Dawkins,diameter,  lBAL, wetness, alt_creek, d_gap, Carbon, Phosphorus, SLA, LA, LT, LDMC, Cc, BT, BD, WD) %>% 
+  mutate(Dawkins = as.factor(Dawkins), n_parcelle = as.factor(n_parcelle), alt_creek = as.numeric(alt_creek), LA = log10(LA)) 
+
+
+envi_soil <-  environment_trait %>%  filter(!is.na(Carbon)) %>% 
+  dplyr::select(Dawkins, diameter, Carbon, Phosphorus ,wetness,lBAL, d_gap, alt_creek ,SLA , LT, Cc, LA, LDMC, BT, BD, WD) %>% 
+  mutate(alt_creek = as.numeric(alt_creek))
+```
+
+
+### SLA model 
+#### general environment
+
+```{r SLA mixte, eval=FALSE, include=TRUE}
+SLA_model <-lm(formula = log(SLA) ~ Dawkins + log(diameter) + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)   , data = data_standar)
+step(SLA_model, direction = "both")
+```
+
+
+```{r echo=TRUE}
+SLA_model <- lm(formula = log(SLA) ~ Dawkins + log(diameter) + log(lBAL), data = (data_standar %>% filter(!is.na(SLA))))
+summary(SLA_model)
+```
+
+
+```{r echo=FALSE}
+par(mfrow = c(2,2))
+plot(SLA_model)
+
+```
+  
+Linear Models: the absolute value of the t--statistic for each model parameter is used.
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(caret)
+
+Imp_SLA<- varImp(SLA_model, nonpara = FALSE)
+
+Imp_SLA <- Imp_SLA %>%  mutate(Variables = row.names(Imp_SLA), Trait = rep("SLA", nrow(Imp_SLA))) %>% 
+  rename(Importance = Overall)
+```
+
+  
+#### adding soil data
+
+
+```{r  eval=FALSE, include=TRUE}
+
+SLA_soil <- lm(formula = log(SLA) ~ Dawkins + log(diameter)  + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)+log(Carbon) + log(Phosphorus), data = envi_soil)
+
+step(SLA_soil , direction = "both")
+```
+
+
+```{r include=FALSE}
+SLA_soil <-lm(formula = log(SLA) ~ Dawkins + log(diameter) + log(wetness),data = envi_soil)
+```
+
+```{r include=FALSE}
+Imp_SLA_soil<- varImp(SLA_soil, nonpara = FALSE)
+
+Imp_SLA_soil<- Imp_SLA_soil%>%  mutate(Variables = row.names(Imp_SLA_soil), Trait = rep("SLA", nrow(Imp_SLA_soil))) %>% 
+  rename(Importance = Overall)
+```
+
+
+###  LDMC model
+#### general environment
+
+```{r LDMC model 1, eval=FALSE, include=TRUE}
+LDMC_model <- lm(log(LDMC)~Dawkins + log(diameter) + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)   , data = data_standar)
+
+step(LDMC_model, direction = "both")
+```
+
+```{r LDMC model 2, echo=FALSE}
+
+LDMC_model <- lm(formula = log(LDMC) ~ Dawkins + log(diameter) + log(lBAL) + 
+    log(wetness) + log(d_gap), data = data_standar)
+
+summary(LDMC_model)
+```
+ 
+```{r echo=FALSE}
+par(mfrow = c(2,2))
+plot(LDMC_model)
+```
+
+```{r include=FALSE}
+Imp_LDMC<- varImp(LDMC_model, nonpara = FALSE)
+
+Imp_LDMC <- Imp_LDMC %>%  mutate(Variables = row.names(Imp_LDMC), Trait = rep("LDMC", nrow(Imp_LDMC))) %>% 
+  rename(Importance = Overall)
+```
+
+#### adding soil data
+
+
+```{r  eval=FALSE, include=TRUE}
+LDMC_soil <- lm(formula = log(LDMC) ~Dawkins + log(diameter)  + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)+log(Carbon) + log(Phosphorus), data = envi_soil)
+
+step(LDMC_soil , direction = "both")
+```
+
+```{r ,include=FALSE}
+LDMC_soil <- lm(formula = log(LDMC) ~ Dawkins + log(lBAL) + log(wetness), 
+    data = envi_soil)
+```
+
+
+```{r include=FALSE}
+Imp_LDMC_soil<- varImp(LDMC_soil, nonpara = FALSE)
+
+Imp_LDMC_soil<- Imp_LDMC_soil%>%  mutate(Variables = row.names(Imp_LDMC_soil), Trait = rep("LDMC", nrow(Imp_LDMC_soil))) %>% 
+  rename(Importance = Overall)
+```
+
+### LT model 
+#### general environment
+
+
+```{r eval=FALSE, include=TRUE}
+LT_model <- lm(log(LT)~Dawkins + log(diameter) + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)   , data = data_standar)
+
+step(LT_model, direction = "both")
+```
+
+
+```{r echo=FALSE}
+LT_model <- lm(formula = log(LT) ~ log(diameter) + log(lBAL) + log(wetness) + 
+    log(alt_creek), data = data_standar)
+
+summary(LT_model)
+```
+
+```{r echo=FALSE}
+par(mfrow = c(2,2))
+plot(LT_model)
+```
+
+
+```{r}
+Imp_LT<- varImp(LT_model, nonpara = FALSE)
+
+Imp_LT <- Imp_LT %>%  mutate(Variables = row.names(Imp_LT), Trait = rep("LT", nrow(Imp_LT))) %>% 
+  rename(Importance = Overall)
+```
+
+#### adding soil data 
+
+
+```{r eval=FALSE, include=TRUE}
+
+LT_soil <- lm(formula = log(LT) ~Dawkins + log(diameter)  + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)+log(Carbon) + log(Phosphorus), data = envi_soil)
+
+step(LT_soil,  direction = "both")
+        
+```
+
+```{r echo=FALSE}
+LT_soil <- lm(formula = log(LT) ~ log(diameter) + log(wetness) + log(d_gap) + 
+    log(alt_creek) + log(Carbon) + log(Phosphorus), data = envi_soil)
+summary(LT_soil)
+```
+
+
+```{r include=FALSE}
+Imp_LT_soil<- varImp(LT_soil, nonpara = FALSE)
+
+Imp_LT_soil<- Imp_LT_soil%>%  mutate(Variables = row.names(Imp_LT_soil), Trait = rep("LT", nrow(Imp_LT_soil))) %>% 
+  rename(Importance = Overall)
+```
+
+
+### Cc model 
+#### general environment 
+
+```{r eval=FALSE, include=TRUE}
+Cc_model <- lm(log(Cc)~Dawkins + log(diameter)  + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek), data = data_standar)
+
+step(Cc_model, direction = "both")
+```
+
+```{r echo=FALSE}
+Cc_model <- lm(formula = log(Cc) ~ Dawkins + log(lBAL) + log(wetness), data = data_standar)
+
+summary(Cc_model)
+```
+
+
+```{r echo=FALSE}
+par(mfrow = c(2,2))
+plot(Cc_model)
+```
+
+```{r}
+Imp_Cc<- varImp(Cc_model, nonpara = FALSE)
+
+Imp_Cc <- Imp_Cc %>%  mutate(Variables = row.names(Imp_Cc), Trait = rep("Cc", nrow(Imp_Cc))) %>% 
+  rename(Importance = Overall)
+```
+
+#### adding soil data 
+
+
+```{r eval=FALSE, include=TRUE}
+Cc_soil <- lm(formula = log(Cc) ~ log(diameter) + log(wetness) + log(d_gap) + 
+    log(alt_creek) + log(Carbon) + log(Phosphorus), data = envi_soil)
+
+step(Cc_soil,  direction = "both")
+        
+```
+
+```{r echo=FALSE}
+Cc_soil <- lm(formula = log(Cc) ~ log(diameter) + log(wetness), data = envi_soil)
+summary(Cc_soil)
+```
+
+
+```{r include=FALSE}
+Imp_Cc_soil<- varImp(Cc_soil, nonpara = FALSE)
+
+Imp_Cc_soil<- Imp_Cc_soil%>%  mutate(Variables = row.names(Imp_Cc_soil), Trait = rep("Cc", nrow(Imp_Cc_soil))) %>% 
+  rename(Importance = Overall)
+```
+
+### LA model 
+#### general environment
+
+```{r eval=FALSE, include=TRUE}
+LA_model <- lm(log(LA)~Dawkins + log(diameter) + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)   , data = data_standar)
+
+step(LA_model, direction = "both")
+```
+
+```{r echo=FALSE}
+LA_model <-lm(formula = log(LA) ~ Dawkins + log(lBAL) + log(wetness) + log(alt_creek),data = data_standar)
+
+summary(LA_model)
+```
+
+
+```{r echo=FALSE}
+par(mfrow = c(2,2))
+plot(LA_model)
+```
+
+```{r}
+Imp_LA<- varImp(LA_model, nonpara = FALSE)
+
+Imp_LA <- Imp_LA %>%  mutate(Variables = row.names(Imp_LA), Trait = rep("LA", nrow(Imp_LA))) %>% 
+  rename(Importance = Overall)
+```
+
+
+#### adding soil data 
+
+
+```{r eval=FALSE, include=TRUE}
+LA_soil <- lm(formula = log(LA) ~Dawkins + log(diameter)  + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)+log(Carbon) + log(Phosphorus), data = envi_soil)
+
+step(LA_soil,  direction = "both")
+        
+```
+
+```{r include=FALSE}
+LA_soil <-lm(formula = log(LA) ~ log(diameter) + log(lBAL) + log(wetness) + 
+    log(alt_creek), data = envi_soil)
+```
+
+
+```{r include=FALSE}
+Imp_LA_soil<- varImp(LA_soil, nonpara = FALSE)
+
+Imp_LA_soil<- Imp_LA_soil%>%  mutate(Variables = row.names(Imp_LA_soil), Trait = rep("LA", nrow(Imp_LA_soil))) %>% 
+  rename(Importance = Overall)
+```
+
+
+### BT model 
+#### general environment
+
+
+```{r eval=FALSE, include=TRUE}
+
+BT_model <- lm(formula= log(BT)~Dawkins + log(diameter) + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)   , data = data_standar)
+step(BT_model, direction = "both")
+```
+
+```{r echo=FALSE}
+BT_model <- lm(formula = log(BT) ~ log(diameter) + log(alt_creek), data = data_standar)
+
+summary(BT_model)
+```
+
+```{r echo=FALSE}
+par(mfrow = c(2,2))
+plot(BT_model)
+```
+
+```{r include=FALSE}
+Imp_BT<- varImp(BT_model, nonpara = FALSE)
+
+Imp_BT <- Imp_BT %>%  mutate(Variables = row.names(Imp_BT), Trait = rep("BT", nrow(Imp_BT))) %>% 
+  rename(Importance = Overall)
+```
+
+
+#### adding soil data 
+
+```{r eval=FALSE, include=TRUE}
+BT_soil <- lm(formula = log(BT) ~Dawkins + log(diameter)  + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)+log(Carbon) + log(Phosphorus), data = envi_soil)
+
+step(BT_soil,  direction = "both")
+```
+
+```{r echo=FALSE}
+BT_soil <- lm(formula = log(BT) ~ log(diameter) + log(lBAL) + log(wetness) + 
+    log(d_gap) + log(Carbon), data = envi_soil) 
+summary(BT_soil)
+```
+
+```{r echo=FALSE}
+par(mfrow = c(2,2))
+plot(BT_soil)
+```
+
+Individual number 103 is really close to the Cook distance line 
+
+And scale location should be linear.
+
+
+```{r include=FALSE}
+Imp_BT_soil<- varImp(BT_soil, nonpara = FALSE)
+
+Imp_BT_soil<- Imp_BT_soil%>%  mutate(Variables = row.names(Imp_BT_soil), Trait = rep("BT", nrow(Imp_BT_soil))) %>% 
+  rename(Importance = Overall)
+```
+
+### BD model 
+#### general environment
+
+
+```{r eval=FALSE, include=TRUE}
+
+BD_model <- lm(formula= log(BD)~Dawkins + log(diameter) + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)   , data = data_standar)
+step(BD_model, direction = "both")
+```
+
+```{r echo=FALSE}
+BD_model <- lm(formula = log(BD) ~ Dawkins + log(wetness) + log(d_gap) + 
+    log(alt_creek), data = data_standar)
+
+summary(BD_model)
+```
+
+```{r echo=FALSE}
+par(mfrow = c(2,2))
+plot(BD_model)
+```
+
+
+```{r include=FALSE}
+Imp_BD<- varImp(BD_model, nonpara = FALSE)
+
+Imp_BD <- Imp_BD %>%  mutate(Variables = row.names(Imp_BD), Trait = rep("BD", nrow(Imp_BD))) %>% 
+  rename(Importance = Overall)
+```
+
+#### adding soil data
+
+
+```{r eval=FALSE, include=TRUE}
+BD_soil <- lm(formula = log(BD) ~Dawkins + log(diameter)  + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)+log(Carbon) + log(Phosphorus), data = envi_soil)
+
+step(BD_soil,  direction = "both")
+```
+
+```{r echo=FALSE}
+BD_soil <- lm(formula = log(BD) ~ Dawkins + log(diameter) + log(lBAL) + 
+    log(alt_creek) + log(Carbon), data = envi_soil)
+summary(BD_soil)
+```
+
+
+```{r echo=FALSE}
+par(mfrow = c(2,2))
+plot(BD_soil)
+```
+Individual n°42 is over the Cook's distance line
+
+
+```{r include=FALSE}
+Imp_BD_soil<- varImp(BD_soil, nonpara = FALSE)
+
+Imp_BD_soil<- Imp_BD_soil%>%  mutate(Variables = row.names(Imp_BD_soil), Trait = rep("BD", nrow(Imp_BD_soil))) %>% 
+  rename(Importance = Overall)
+```
+
+
+### WD model 
+#### general environment
+
+
+```{r eval=FALSE, include=TRUE}
+
+WD_model <- lm(formula= log(WD)~Dawkins + log(diameter) + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)   , data = data_standar)
+step(WD_model, direction = "both")
+```
+
+```{r echo=FALSE}
+WD_model <- lm(formula = log(WD) ~ Dawkins + log(lBAL) + log(alt_creek), 
+    data = data_standar)
+
+summary(WD_model)
+```
+
+```{r echo=FALSE}
+par(mfrow = c(2,2))
+plot(WD_model)
+```
+
+
+```{r include=FALSE}
+Imp_WD<- varImp(WD_model, nonpara = FALSE)
+
+Imp_WD <- Imp_WD %>%  mutate(Variables = row.names(Imp_WD), Trait = rep("WD", nrow(Imp_WD))) %>% 
+  rename(Importance = Overall)
+```
+
+
+#### adding soil data 
+
+```{r eval=FALSE, include=TRUE}
+WD_soil <- lm(formula = log(WD) ~Dawkins + log(diameter)  + log(lBAL) + log(wetness) + log(d_gap) + log(alt_creek)+log(Carbon) + log(Phosphorus), data = envi_soil)
+
+step(WD_soil,  direction = "both")
+```
+
+```{r echo=FALSE}
+WD_soil <- lm(formula = log(WD) ~ log(diameter) + log(lBAL) + log(wetness) + 
+    log(d_gap) + log(alt_creek) + log(Phosphorus), data = envi_soil)
+summary(WD_soil)
+```
+
+
+```{r echo=FALSE}
+par(mfrow = c(2,2))
+plot(WD_soil)
+```
+
+
+```{r include=FALSE}
+Imp_WD_soil<- varImp(WD_soil, nonpara = FALSE)
+
+Imp_WD_soil<- Imp_WD_soil%>%  mutate(Variables = row.names(Imp_WD_soil), Trait = rep("WD", nrow(Imp_WD_soil))) %>% 
+  rename(Importance = Overall)
+```
+
+## How
+
+
+```{r echo=FALSE}
+model_tab = matrix(NA, ncol = 9, nrow = 13)
+model_tab <- as.data.frame(model_tab)
+
+names(model_tab)<- c("Variables","Specific Leaf Area", "Leaf Dry Matter Content", "Leaf Thickness", "Leaf Area","Chlorophyll content", "Branch Bark Thickness" , "Branch Bark density" , "Branch Wood density ")
+
+model_tab$Variables<- c("Intercept","Dawkins2","Dawkins3","Dawkins4","Dawkins5","Diameter"," lBAL  ", "Wetness","d_gap","alt_creek", "Carbon", "Phosphorus", "Adjusted R²")
+
+model_tab$`Specific Leaf Area`<- c("[+]***","[-]*","[-]***","[-]***","[-]***","[-]*","[-]",NA,NA,NA,NA,NA,"0.3256")
+
+model_tab$`Leaf Dry Matter Content`<-  c("[-]***","[+]","[+]**","[+]***","[+]***","[+]","[+]*","[+]***", "[-]*",NA,NA,NA,"0.2831")
+
+model_tab$`Leaf Area` <- c("[+]***","[-]","[-]***","[-]***","[-]***",NA,"[-]***","[+]***",NA,"[-]***",NA,NA,"0.3554")
+
+model_tab$`Chlorophyll content`<- c("[+]***","[+]**","[+]***","[+]***","[+]***",NA,"[+].","[-]***",NA,NA,NA ,NA,"0.1665")
+
+model_tab$`Leaf Thickness`<- c("[+]***",NA,NA,NA,NA,"[+]***","[-]**","[+]", NA,"[+]","[-]**","[-]","0.2392")
+
+model_tab$`Branch Bark Thickness`<- c("[-]***",NA,NA,NA,NA,"[+]***",NA,NA,NA,"[-]**","[+]***",NA,"0.4053")
+
+model_tab$`Branch Bark density` <- c("[-]***","[+]","[-]","[-].","[-]",NA,NA,"[-]","[+]","[+]**","[+].",NA,"0.4657")
+
+model_tab$`Branch Wood density ` <- c("[-]***","[-]","[-]","[+]","[-]*",NA,"[+]",NA,NA,"[+]**",NA,"[-].","0.2071 ")
+
+
+for(i in 2:ncol(model_tab)){
+  for(j in 1:nrow(model_tab)){
+    # could be written if(!is.na) in other cases
+    if(!is.na(model_tab[j,i])| is.numeric(model_tab[j,i])){
+      model_tab[j,i] <- cell_spec(model_tab[j,i], "html", color = ifelse(grepl("[+]",model_tab[j,i]),"green", "red"))
+    }
+    else{
+      # We have to write the "NA" in the same syntax, else kable doesnt understand why you use a syntax in some cells and not in others
+      model_tab[j,i] <- paste0('<span style=" color: black;" >',model_tab[j,i],"</span>")
+      # commande de tunage de couleur :<span style=" color: red;" >[ - ].</span>
+    }
+  }           
+}
+
+
+kable(model_tab,"html", escape = F) %>%  kable_styling(bootstrap_options = c("striped", "hover", "condensed","background-color :white")) %>%  add_footnote(c("NA's are non selected variables by step method","Wood trait models(BT, BD and WD) are fitted with 50 individuals","Models with Carbon and Phosphorus variables are fitted with 169 individuals", "Coefficient F -statistic ; Signif. codes:  0 '***' , 0.001 '**', 0.01 '*' ,0.05 '.', 0.1 ' ' "), notation = "alphabet")
+
+```
+
+
+## Variable relative importance 
+
+```{r include=FALSE}
+rm("SLA_model", "LT_model", "BD_model", "LA_model", "LDMC_model","BT_model", "WD_model", "Cc_model")
+
+rm("SLA_soil", "LT_soil", "BD_soil", "LA_soil", "LDMC_soil","BT_soil", "WD_soil", "Cc_soil")
+```
+
+
+The relative importance of each model variables is calculted with the unction "varimp" from caret package. A S3 method for linear model uses the absolute value of the t-statistic for each model parameter as proxy of importance. All measures of importance are scaled to have a maximum value of 100.
+
+
+```{r include=FALSE}
+Imp_data <- rbind(Imp_SLA, Imp_LT, Imp_BD, Imp_LA, Imp_LDMC,Imp_BT, Imp_WD, Imp_Cc) 
+
+Imp_data_soil <- rbind(Imp_SLA_soil, Imp_LT_soil, Imp_BD_soil, Imp_LA_soil, Imp_LDMC_soil,Imp_BT_soil, Imp_WD_soil, Imp_Cc_soil) 
+
+rm("Imp_SLA", "Imp_LT", "Imp_BD", "Imp_LA", "Imp_LDMC","Imp_BT", "Imp_WD", "Imp_Cc")
+
+rm("Imp_SLA_soil", "Imp_LT_soil", "Imp_BD_soil", "Imp_LA_soil", "Imp_LDMC_soil","Imp_BT_soil", "Imp_WD_soil", "Imp_Cc_soil")
+```
+
+
+```{r echo=FALSE}
+
+Imp_data %>%  mutate(Variables = gsub("log\\(","", Variables),Variables = gsub("\\)","", Variables)) %>%  mutate(Importance = as.integer(Importance)) %>% 
+ ggplot(aes(x = Trait, y = Importance, fill = Variables))+
+  geom_bar(stat = "identity")+
+  #labs(title = "Variance component analysis", y = "fraction of the total variance explained
+       #by each scale (value*100) ", x= "functional trait")+
+  scale_fill_brewer(palette="Set3")+
+  geom_text(aes(label = Importance, group = Variables),position = position_stack(vjust = 0.5))+
+  ggtitle("Variable relative importance of each trait model 
+          (non comparable data) ")
+
+```
+
+```{r echo=FALSE}
+Imp_data_soil %>%  mutate(Variables = gsub("log\\(","", Variables),Variables = gsub("\\)","", Variables)) %>% mutate(Importance = as.integer(Importance)) %>% 
+ ggplot(aes(x = Trait, y = Importance, fill = Variables))+
+  geom_bar(stat = "identity")+
+  #labs(title = "Variance component analysis", y = "fraction of the total variance explained
+       #by each scale (value*100) ", x= "functional trait")+
+  scale_fill_brewer(palette="Set3")+
+  geom_text(aes(label = Importance, group = Variables),position = position_stack(vjust = 0.5))+
+  ggtitle("Variable relative importance of each trait soil model 
+          (non comparable data) ")
+```
+
