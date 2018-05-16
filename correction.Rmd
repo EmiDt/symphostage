@@ -9,11 +9,11 @@ library(dplyr)
 library(reshape2)
 library(magrittr)
 #<<<<<<< HEAD
-path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\" # path to all data files currently in the same place
-setwd(path)
+path <- "F:\\Stage Ecofog\\symphostage\\" # path to all data files currently in the same place
+#setwd(path)
 # path <- file.path(getwd(), "data") # just a suggestion if you want to organise your data elsewhere like in a data subfolder
 #=======
-path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+
 # path <- "./data/" # To be used on sylvain local machine
 #>>>>>>> 23721802fb9fe032b908aca70639454fff4b47eb
 ```
@@ -22,6 +22,8 @@ path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
 
 ```{r data}
 DW <- read.csv(file.path(path, "PoidsSecSympho.csv"),header = T, dec = ",", sep=";")
+
+DW_out <- read.csv(file.path(path, "PoidsSecOutliers.csv"),header = T, dec = ",", sep=";")
 
 Ecorce<- read.csv(file.path(path, "Measures - Individuals2.csv"), header = T, dec=",", sep=";")[-1]
 
@@ -39,6 +41,9 @@ paracou <- read.csv(file.path(path, "Symphonia_Paracou.csv"),header = T, dec = "
 LA_exclude_holes <- read.csv(file.path(path, "Results excludes holes.csv"), header = T, dec=".", sep=";") %>%
   mutate(ID = gsub("Q","",ID)) %>% 
   mutate(ID = gsub("p","P",ID))
+
+  # LA_exclude_holes %>%  dplyr::select(ID,Area) %>%
+  # filter(ID == "P11-4-989" | ID == "P11-1-472")
 
 LA_corrected_scans <- read.csv(file.path(path, "Results Scans corrected.csv"), header = T, dec=".", sep=";")
 
@@ -63,7 +68,7 @@ data <- Ecorce %>%
   left_join(LTh, by = c(cols, "Feuille"))
 
 data %>%  left_join(paracou, by = cols) %>% 
-  filter(idArbre == NA)
+  filter(is.na(idArbre))
 
 indParacou <- with(paracou, paste(paste0("P", n_parcelle), n_carre, 
                               n_arbre, sep = "_"))
@@ -80,17 +85,30 @@ data2 <- data %>%  left_join(paracou, by = cols )
 
 names(DW)[1:3] <- cols
 DW<- DW  %>%  
-  rename("1" = F1) %>% 
-  rename("2" = F2) %>% 
-  rename("3" = F3) %>%
-  rename("4" = F4) %>% 
-  rename("5" = F5) %>% 
-  select(cols, "1","2","3","4","5") %>% 
+  dplyr::rename("1" = F1) %>% 
+  dplyr::rename("2" = F2) %>% 
+  dplyr::rename("3" = F3) %>%
+  dplyr::rename("4" = F4) %>% 
+  dplyr::rename("5" = F5) %>% 
+  dplyr::select(cols, "1","2","3","4","5") %>% 
   reshape2::melt(DW, id.vars = c("n_parcelle","n_carre", "n_arbre"), measure.vars = c("1","2","3","4","5"), variable.name = "Feuille" ,value.name ="DryW" ) %>% 
   arrange(n_parcelle, n_carre, n_arbre, Feuille) %>% 
   mutate(Feuille = as.integer(Feuille)) %>% 
-  rename("n_feuille"= Feuille)
+  dplyr::rename("n_feuille"= Feuille)
   
+
+DW_out <- DW_out %>%  
+  dplyr::rename(n_carre = n_arbre , n_arbre = n_carre) %>% 
+  dplyr::rename("1" = X1) %>% 
+  dplyr::rename("2" = X2) %>% 
+  dplyr::rename("3" = X3) %>%
+  dplyr::rename("4" = X4) %>% 
+  dplyr::rename("5" = X5) %>% 
+  reshape2::melt(DW, id.vars = c("n_parcelle","n_carre", "n_arbre"), measure.vars = c("1","2","3","4","5"), variable.name = "Feuille" ,value.name ="DryW_out" ) %>% 
+  arrange(n_parcelle, n_carre, n_arbre, Feuille) %>% 
+  mutate(Feuille = as.integer(Feuille)) %>% 
+  dplyr::rename("n_feuille"= Feuille)
+
 # DW %<>% rename("n_feuille"= Feuille)
 data2 %<>% rename("n_feuille"= Feuille) 
 
@@ -107,6 +125,14 @@ data3 %>%
 
 #DW[grep("symphonia", DW$F6),]
 ```
+6 lignes doivent appara^tre car il ya 4 individus avec 4 feuilles échantillionnées et 2 individus donc la feuilles n'était pas du symphonia (cf.commentaire csv)
+
+comparaison DW et DW_out 
+
+```{r}
+DW %>% full_join(DW_out,by = c("n_parcelle", "n_carre", "n_arbre", "n_feuille")) %>%  filter(!is.na(DryW_out)) %>%  group_by(n_parcelle, n_carre, n_arbre) %>%  summarise_at(c("DryW", "DryW_out"),mean)
+```
+
 # LA 
 
 document charged at the begining : LA_include_holes and LA_exclude_holes are a final document of multiple table merging  named as : Results_ exclude or include.csv. 
@@ -303,12 +329,13 @@ anti_join(LA_include_index,data4 )
 anti_join(data4,LA_include_index)
 
 
-LA_index_correspondance <- anti_join(LA_include_index, data4)%>%
+LA_index_correspondance <- anti_join(LA_include_index, data4) %>% arrange(n_parcelle) %>% 
   mutate(n_parcelle_c = c(1,2,6,7, 7 ,11, 11,  13, 13, 14,15, 15,16 )) %>% 
   mutate(n_carre_c = c(4,1,2,3, 3,1, 4, 2, 3,  2 ,2 ,1,1)) %>% 
-  mutate(n_arbre_c = c(2853,2301,2976,2806, 2666 , 742, 983,469 ,538,2874, 1113,575, 2783  )) 
+  mutate(n_arbre_c = c(2853,2301,2976,2806, 2666 , 742, 983,469 ,538,2874, 1113,575, 2783  )) %>% 
+  mutate(ID = paste(n_parcelle_c,n_carre_c ,n_arbre_c, sep="_"))
 
-#write.csv2(LA_index_correspondance, "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_index_correspondance.csv")
+#write.csv2(LA_index_correspondance, file.path(path, "LA_index_correspondance.csv"))
 
 
 ```
@@ -350,7 +377,11 @@ LA_data_include_final2 <- LA_data_include_final2 %>%
 disordered leaves and forleaves individual number table is construct by hand with LA_include_EllipsetoID table and here combine to final data table (LA_data_include_final2) with once again an ifesle test to replace the wrong order by the right one. 
 
 ```{r}
-LA_data_Leaf_ordered <- read.csv (file.path(path, "LA_data_Leaf_ordered.csv"), header = T, dec=".", sep=";")
+LA_data_Leaf_ordered <- read.csv (file.path(path, "LA_data_Leaf_ordered.csv"), header = T, dec=",", sep=";")
+
+# LA_data_Leaf_ordered %>%
+#   mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%
+#   filter(ID == "11_4_983" | ID == "11_1_742")
 
 Leaf_Area_data_include <- LA_data_Leaf_ordered %>% 
   mutate( feuille_f  = ifelse(is.na(disordered), n_feuille,disordered)) %>% 
@@ -389,6 +420,11 @@ for (i in 2:length(LA_exclude_holes$ID))
   LA_exclude_holes$Feuille[i]<-count
 }
 
+  # LA_exclude_holes %>%  dplyr::select(ID,Area) %>%
+  # filter(ID == "P11-4-989" | ID == "P11-1-472")
+
+# LA_exclude_holes%>%
+#   filter(ID == "P1-3-106" | ID == "P10-1-3300" | ID == "P14-1-2830" | ID == "P16-22-2787"| ID == "P16-11-545"| ID == "P16-15-43"| ID == "P4-4-3403"| ID == "P5-2-2952"| ID == "P6-1-2924"| ID == "P6-4-2300"| ID == "P6-4-2968"| ID == "P7-3-2807"| ID == "P7-3-679"| ID == "P7-3-2812"| ID == "P8-3-3487"| ID == "P8-3-3491"| ID == "P8-3-3493"| ID == "P8-3-3218") %>% dplyr::select(ID, Area) %>% arrange(ID, Area) %>% group_by(ID) %>% summarise_at("Area", mean )
 ```
 
 
@@ -405,6 +441,10 @@ LA_exclude_corrected  <- LA_exclude_holes %>%
   mutate(Area.f = ifelse(is.na(Area.c), Area.o, Area.c)) %>% 
   select(ID, Feuille, Area.f, n_parcelle, n_carre, n_arbre) %>% 
   rename( n_feuille = Feuille)
+
+  # LA_exclude_corrected %>%  dplyr::select(ID,Area.f) %>%
+  # filter(ID == "P11-4-989" | ID == "P11-1-472")
+
 
 ```
 
@@ -449,6 +489,8 @@ LA_misscount_exclude <-  LA_misscount_exclude %>%
   select(ID, Area, Parcelle, Carre, Numero) %>% 
    mutate(ID = gsub("p","P",ID)) 
 
+  # LA_misscount_exclude %>%  dplyr::select(ID,Area) %>%
+  # filter(ID == "P11-4-989" | ID == "P11-1-472")
 ```
 
 then for each index repetition we give a leaf number from five to 1 but does not consider disorder or four leaves individuals yet.
@@ -472,6 +514,8 @@ for (i in 2:length(LA_misscount_exclude$ID))
 LA_misscount_exclude <- LA_misscount_exclude %>% 
   rename(n_parcelle = Parcelle , n_carre= Carre , n_arbre = Numero, n_feuille = Feuille) 
 
+  # LA_misscount_exclude %>%  dplyr::select(ID,Area) %>%
+  # filter(ID == "P11-4-989" | ID == "P11-1-472")
 ```
 
 Now combination with full corrected data table : La_exclude_corrected
@@ -485,6 +529,9 @@ LA_data_exclude_final <- LA_misscount_exclude %>%
   rename(Area.m = Area) %>% # .m = misscount 
   mutate(Area.d = ifelse(is.na(Area.m), Area.f, Area.m)) %>% # .d = data
   select(ID, Area.d,n_parcelle, n_carre, n_arbre, n_feuille )
+
+  # LA_data_exclude_final %>%  dplyr::select(ID,Area.d) %>%
+  # filter(ID == "P11-4-989" | ID == "P11-1-472")
 ```
 
 Verification that nothing has been forgot
@@ -496,14 +543,14 @@ LA_data_exclude_count <- LA_data_exclude_final %>%
   summarise(n_LA = n())
 
 data3_count %>% 
-  left_join(LA_data_exclude_count) %>% 
+  left_join(LA_data_exclude_count, by = "ID") %>% 
   filter(n_data != n_LA) %>%
   ungroup() %>% 
   select(ID, n_data, n_LA) 
 
 ```
 
-Only 2 individuals are spotted and it is normal because it individuals with non symphonia leaves discrovered after leaves scan. 
+Only 2 individuals are spotted and it is normal because it individuals with non symphonia leaves discovered after leaves scan. 
 
 ## index verification 
 
@@ -514,8 +561,8 @@ LA_exclude_index <- LA_data_exclude_final%>%
   select(n_parcelle, n_carre, n_arbre) %>% 
   distinct()
 
-anti_join(LA_exclude_index,data4 )
-anti_join(data4,LA_exclude_index)
+anti_join(LA_exclude_index,data4 , by = c("n_parcelle", "n_carre", "n_arbre"))
+anti_join(data4,LA_exclude_index, by = c("n_parcelle", "n_carre", "n_arbre"))
 
 ```
 
@@ -530,7 +577,6 @@ LA_data_exclude_final2 <- LA_data_exclude_final %>%
   mutate( arbre_f = ifelse(is.na(n_arbre_c), n_arbre,n_arbre_c)) %>% 
   select(Area.d, parcelle_f, carre_f, arbre_f, n_feuille) %>% 
   rename(Area = Area.d, n_parcelle = parcelle_f, n_carre = carre_f, n_arbre = arbre_f)
-
 ```
 
 
@@ -543,10 +589,17 @@ LA_data_exclude_final2 <- LA_data_exclude_final2 %>%
   mutate( IndexFeuille = paste(n_parcelle, n_carre, n_arbre, n_feuille, sep="_")) %>% 
   filter(!(IndexFeuille == "13_2_662_1")) %>% 
   filter(!(IndexFeuille == "14_1_361_5")) %>% 
-  select(-IndexFeuille)
+  select(-IndexFeuille) %>% mutate(Area = as.numeric((Area)))
 
-#write.csv2(LA_data_exclude_final2 , "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\LA_data_exclude_final2.csv")
+write.csv2(LA_data_exclude_final2 , file.path(path, "LA_data_exclude_final2.csv"))
 
+# LA_data_exclude_final2%>%
+#   mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%
+#   filter(ID == "11_4_983" | ID == "11_1_742" | ID == "1_4_2853" | ID == "2_1_2301"| ID == "6_2_2976"| ID == "7_3_2806"| ID == "7_3_2666"| ID == "13_2_469"| ID == "13_3_538"| ID == "14_2_2874"| ID == "15_2_1113"| ID == "15_1_575"| ID == "16_1_2783")%>% dplyr::select(ID, n_feuille, Area) %>% arrange(ID, Area) 
+
+LA_data_exclude_final2%>%
+  mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%
+  filter(ID == "1_3_106" | ID == "10_1_3300" | ID == "14_1_2830" | ID == "16_22_2787"| ID == "16_11_545"| ID == "16_15_43"| ID == "4_4_3403"| ID == "5_2_2952"| ID == "6_1_2924"| ID == "6_4_2300"| ID == "6_4_2968"| ID == "7_3_2807"| ID == "7_3_679"| ID == "7_3_2812"| ID == "8_3_3487"| ID == "8_3_3491"| ID == "8_3_3493"| ID == "8_3_3218") %>% dplyr::select(ID, n_feuille, Area) %>% arrange(ID, Area) %>% group_by(ID) %>% summarise_at("Area", mean, )
 
 ```
 
@@ -557,11 +610,18 @@ disordered leaves and forleaves individual number table is construct by hand wit
 
 ```{r}
 
-Leaf_Area_data_exclude <- LA_data_Leaf_ordered %>% 
-  mutate( feuille_f  = ifelse(is.na(disordered), n_feuille,disordered)) %>% 
+Leaf_Area_data_exclude <- LA_data_Leaf_ordered %>% dplyr::select(-Area) %>% full_join(LA_data_exclude_final2) %>% 
+mutate(feuille_f  = ifelse(is.na(disordered), n_feuille,disordered)) %>% 
   select( n_parcelle, n_carre, n_arbre , feuille_f, Area) %>% 
   rename( n_feuille = feuille_f)
   
+# Leaf_Area_data_exclude %>%
+#   mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%
+#   filter(ID == "11_4_983" | ID == "11_1_742" | ID == "1_4_2853" | ID == "2_1_2301"| ID == "6_2_2976"| ID == "7_3_2806"| ID == "7_3_2666"| ID == "13_2_469"| ID == "13_3_538"| ID == "14_2_2874"| ID == "15_2_1113"| ID == "15_1_575"| ID == "16_1_2783") %>% dplyr::select(ID, n_feuille, Area) %>% arrange(ID, Area) 
+
+Leaf_Area_data_exclude %>%
+  mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%
+  filter(ID == "1_3_106" | ID == "10_1_3300" | ID == "14_1_2830" | ID == "16_22_2787"| ID == "16_11_545"| ID == "16_15_43"| ID == "4_4_3403"| ID == "5_2_2952"| ID == "6_1_2924"| ID == "6_4_2300"| ID == "6_4_2968"| ID == "7_3_2807"| ID == "7_3_679"| ID == "7_3_2812"| ID == "8_3_3487"| ID == "8_3_3491"| ID == "8_3_3493"| ID == "8_3_3218") %>% dplyr::select(ID, n_feuille, Area) %>% arrange(ID, Area) %>% group_by(ID) %>% summarise_at("Area", mean, )
 ```
 
 ### combination with data3 
@@ -569,6 +629,10 @@ Leaf_Area_data_exclude <- LA_data_Leaf_ordered %>%
 ```{r}
 data_full2 <- Leaf_Area_data_exclude %>%  
   full_join(data_full, by = c( "n_parcelle", "n_carre", "n_arbre", "n_feuille"), suffix = c("_include", "_exclude"))
+
+data_full2 %>% 
+  mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%  dplyr::select(ID,n_feuille,Area_exclude) %>%
+  filter(ID == "11_4_983" | ID == "11_1_742")
 ```
 
 
@@ -649,9 +713,9 @@ Only on mean value for the moment
 Full_traits_data<- Full_traits_data %>% 
   mutate(ID = paste(n_parcelle, n_carre, n_arbre, n_feuille, sep="_"))  
 
-Full_traits_data$SPAD_mean[which(Full_traits_data$ID == "13_2_662_1", Full_traits_data$ID == "14_1_361_5")] <- NA
+Full_traits_data$SPAD_mean[which(Full_traits_data$ID == "13_2_662_1"| Full_traits_data$ID == "14_1_361_5")] <- NA
 
-Full_traits_data$LT_mean[which(Full_traits_data$ID == "13_2_662_1", Full_traits_data$ID == "14_1_361_5")] <- NA
+Full_traits_data$LT_mean[which(Full_traits_data$ID == "13_2_662_1"| Full_traits_data$ID == "14_1_361_5")] <- NA
 
 ```
 
@@ -659,10 +723,10 @@ Full_traits_data$LT_mean[which(Full_traits_data$ID == "13_2_662_1", Full_traits_
 
 ```{r}
 Full_traits_data <- Full_traits_data %>% 
-  select(n_parcelle, n_carre, n_arbre, n_feuille, morphotype, idArbre, Xutm, Yutm, Area_exclude, Area_include, Dawkins, Fresh_weight, Dry_Weight, diameter, SPAD_mean, LT_mean, Branch_diameter, Bark_thickness, Wood_infra_density, Bark_infra_density, Bois, morphotype_field) 
+  select(n_parcelle, n_carre, n_arbre, n_feuille, morphotype, idArbre, Xutm, Yutm, Area_exclude, Area_include, Dawkins, Fresh_weight, Dry_Weight, diameter, SPAD_mean, LT_mean, Branch_diameter, Bark_thickness, Wood_infra_density, Bark_infra_density, Bois, morphotype_field) %>%  mutate(Area_exclude = gsub(",",".", Area_exclude)) %>%  mutate(Area_exclude = as.numeric(as.character(Area_exclude)))
 
   
-#write.csv2(Full_traits_data ,file.path(path, "Full_traits_data.csv"))
+write.csv2(Full_traits_data ,file.path(path, "Full_traits_data.csv"))
 
 ```
 

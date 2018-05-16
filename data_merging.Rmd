@@ -8,7 +8,7 @@ output:
 ```{r}
 rm(list = ls())
 knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
-library(tidyverse)
+library(dplyr)
  path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\data_merging\\"
 ```
 
@@ -18,7 +18,34 @@ library(tidyverse)
 Uppload data files with 2010 individuals measures 
 
 ```{r}
-Traits_brut_data <- read.csv(file.path(path, "Full_traits_data.csv"),header = T, dec = ",", sep=";")
+Traits_brut_data <- read.csv(file.path(path, "Full_traits_data.csv"),header = T, dec = ",", sep=";") %>% mutate(ID = paste(n_parcelle, n_carre, n_arbre, n_feuille, sep="_")) 
+
+# Traits_brut_data %>% mutate(ID2 = paste(n_parcelle, n_carre, n_arbre,  sep="_")) %>%  dplyr::select(ID2,Area_exclude) %>%
+#    filter(ID2 == "11_1_742" | ID2 == "11_4_983")
+```
+
+#varcomp data
+Psecial data fram for varcomp analysis with the leaf level 
+
+```{r}
+varcomp_data <- Traits_brut_data %>% mutate(SLA = (Area_exclude / Dry_Weight)) %>%
+  mutate(LMDC = Dry_Weight/ Fresh_weight) %>%
+  mutate(Chloro_content = ((154.1* SPAD_mean)/(197.6-SPAD_mean))) %>%
+  dplyr::select( n_parcelle, n_carre, n_arbre , n_feuille,morphotype,  morphotype_field,diameter, SLA, LMDC , Chloro_content, Area_exclude,LT_mean  )
+
+```
+
+```{r}
+# summary(Traits_brut_data[, c("Dry_Weight", "Fresh_weight", "Area_exclude","SPAD_mean")])
+```
+13-2-73
+```{r}
+# trait_transform %>% mutate(ID = paste(n_parcelle,n_carre,n_arbre, sep="_")) %>% 
+#   filter( ID == "11_1_742" | ID == "11_4_983" | ID == "2_3_236" | ID =="1_2_387" | ID =="13_2_73" | ID =="15_1_198" |ID =="2_3_2530"  )
+```
+
+```{r}
+# summary(trait_transform[, "Chloro_content"])
 ```
 
 Transform mean individuals data because we are looking for inter-individual variation and not intra-individual only for numeric variables here.
@@ -61,7 +88,7 @@ trait_transform <- trait_mean_num %>%
 chlorophyll content transformation come from Coste et al 2010 but with parameters from papers and not re-fitted with our data .. 
 And now merging trait mean num and vect to have an complete mean trait value table 
 
-```{r warning=F}
+```{r message=FALSE, warning=F}
 trait_final <- full_join(trait_transform, Trait_mean_vect, by = c("n_parcelle", "n_carre", "n_arbre") ) %>%
   mutate(Dawkins = gsub("A","",Dawkins)) %>% 
   mutate(Dawkins = gsub("B","",Dawkins)) %>% 
@@ -79,8 +106,7 @@ trait_final <- full_join(trait_transform, Trait_mean_vect, by = c("n_parcelle", 
 every environmental data have been calculated with dcm and dem with 1meter cells in 2015. Execpt for the wetness index environement_paracou file, so we remove the wetness index colum in this file and add the right one later. 
 
 ```{r}
-environment <-read.csv(file.path(path, "Environment_paracou.csv"),header = T, dec = ".", sep=",") %>% 
-  dplyr::select(-wetness)
+environment <-read.csv(file.path(path, "environment_paracou.csv"),header = T, dec = ".", sep=",")
 
 
 environment_trait <- trait_final %>%  inner_join(environment, by = c("n_parcelle", "n_carre", "n_arbre"))
@@ -88,6 +114,12 @@ environment_trait <- trait_final %>%  inner_join(environment, by = c("n_parcelle
 
 ```
 
+```{r}
+ varcomp_data<- environment_trait %>% dplyr::select(n_parcelle, n_carre, n_arbre, topo) %>% 
+ inner_join(varcomp_data, by = c("n_parcelle", "n_carre", "n_arbre")) %>% rename(LDMC = LMDC , LT = LT_mean , LA = Area_exclude , Cc = Chloro_content) %>% mutate(topo = as.character(topo))
+
+ write.csv(varcomp_data, file ="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\varcomp_data.csv" )
+```
 
 merging environmental data with transformed trait data, only 401 are in commun so one individual is missing lets found which one 
 
@@ -127,71 +159,18 @@ environment_trait <- environment_trait %>%
 #write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment_trait2.csv" )
 ```
 
-## adding d_gap 
+##Allié 2015 gis data 
 
-D_gap is a descriptor or the distance between the focal tree and the nearest light gap (here gap area area > 4m²), it is calculated with 1meter precision dcm.
+environment_gis.csv, data export from attribute table construct with "statistique de zone" pour la couche sympho_poly (transformation des point GPS en polygoneoption square et rayon 1 mètre car la statistique de zone ne se fait qu'entre raster), choix de la moyenne de la zone pour C (raster S3, bande 1), P (raster S3, bande 2), alt_creek (raster S1, bande 2).
 
-```{r}
-gap <- read.csv(file.path(path, "sympho_gap.csv"),header = T, dec = ".", sep=",")%>% 
-  dplyr::select(-X)
-
-environment_trait <- gap %>% 
-  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
-
-
-```
-
-## adding dcm 
-
-Dcm is the digital canopy model it gives the mean height in a given point here our focal tree. It is not always reliable so we need to check if height value are cohorent with DBH data because there is a knonw allometry between height and DBH due to biological constrains like the "limite de flambage" in french. 
-
-```{r}
-dcm <- read.csv(file.path(path, "sympho_dcm.csv"),header = T, dec = ".", sep=",")%>% 
-  dplyr::select(-X)
-
-environment_trait <- dcm%>% 
-  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
-
-```
-
-
-
-## adding wetness
-
-```{r}
-wetness <-read.csv(file.path(path, "sympho_wetness.csv"),header = T, dec = ".", sep=",") %>% 
-  dplyr::select(-X)
-
-environment_trait <- wetness %>% 
-  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
-```
-
-## adding Allié 2015 gis data 
+La couche sympho est un lecture de couche en texte délimité du fichier environment_trait enregistré avec 402 individu et colonne déjà associée a Carbon, Phosphor et alt_creek érronnée. Lors de l'export de la table d'attribue en CVS attention de choisir les bonne colonnes.
 
 ```{r}
 gis <-read.csv(file.path(path, "environment_gis.csv"),header = T, dec = ",", sep=";")
 
 environment_trait <- gis %>% 
+  dplyr::rename(Carbon = Carbonme_1 , Phosphorus = Phosphor_1 , alt_creek = alt_creekm) %>% 
   full_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
-```
-
-## adding habitat topo category
-
-```{r}
-topo <-read.csv(file.path(path, "sympho_topo.csv"),header = T, dec = ".", sep=",") %>%   dplyr::select(-X)
-
-environment_trait <- topo %>% 
-  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
-
-```
-
-# adding hillshade and new aspect
-
-```{r}
-hillshade <-read.csv(file.path(path, "sympho_ombre.csv"),header = T, dec = ",", sep=";")
-
-environment_trait <- hillshade  %>% 
-  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
 ```
 
 
@@ -201,7 +180,9 @@ there is an X colunm that is useless so we remove it
 
 ```{r}
 environment_trait <- environment_trait %>%
-  dplyr::select(-X)
+  mutate(Dawkins = as.factor(Dawkins), ID= as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>% 
+  rename(LDMC = LMDC , LT = LT_mean , LA = Area_exclude , Cc = Chloro_content, BT = Bark_thickness, BD = Bark_infra_density, WD = Wood_infra_density) %>% 
+  dplyr::select( -X , -d_log_gap, -hydromorphy , -waterlog , -aspect , -drainages, - basal_area, -wood_presence) %>% mutate(wtd = as.character(wtd), topo = as.character(topo))
 
 write.csv(environment_trait, file ="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment_trait.csv" )
 ```
