@@ -6,10 +6,10 @@ output:
     theme: spacelab
     toc: yes
 ---
-
-```{r message = F, warning= F}
+# package
+```{r message=F, warning=}
 rm(list = ls())
-knitr::opts_chunk$set(eval = T, cache = T, message = F, warning=F)
+knitr::opts_chunk$set(eval = F, cache = T, message = F, warning=F)
 library(dplyr)
 library(magrittr)
 library(ggplot2)
@@ -38,8 +38,7 @@ path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
 
 ```{r}
 
-environment_trait<- read.csv(file.path(path, "environment_trait.csv"),header = T, dec = ".", sep=",") %>%  dplyr::select(-aspect.y) %>% 
-  dplyr::rename(aspect = "aspect.x")
+environment_trait<- read.csv(file.path(path, "environment_trait.csv"),header = T, dec = ".", sep=",") 
 
 data_standar <- read.csv(file.path(path, "data_standar.csv"),header = T, dec = ".", sep=",") 
 
@@ -48,6 +47,7 @@ data_standar <- read.csv(file.path(path, "data_standar.csv"),header = T, dec = "
 # write.csv(sympho_gis, file="C:\\Users\\emduc\\Desktop\\sympho_gis.csv")
 ```
 In the following text, the terms descriptors and varaible will be used interchangeably. These refereing to the attributes (not in the functional way), or character used to describe or compoare the object of the study.
+
 
 ## 1 Symphonia Height allometry 
 
@@ -83,7 +83,7 @@ So for every tree that are going to be under this value I will consider them as 
 ## 2- spotting outliers 
 
 
-```{r}
+```{r v, eval=FALSE, include=FALSE}
 
 environment_trait <- environment_trait %>% 
   mutate(ID= as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_")))
@@ -91,73 +91,86 @@ environment_trait <- environment_trait %>%
 outliers_name <- environment_trait$ID
 ```
 ### a) SLA
-```{r SLA outliers}
-boxplot.with.outlier.label(environment_trait$SLA,outliers_name)%$% 
-data.frame(ID = outlier_df$label_name)  %>%  inner_join((environment_trait %>% dplyr::select(ID, SLA)), by = "ID") %>%  kable(format = "html") %>%  kable_styling(bootstrap_options = "condensed",  full_width = F)
+```{r SLA outliers, echo=FALSE}
+boxplot.with.outlier.label(environment_trait$SLA,outliers_name, main = "SLA outliers ")%$% 
+data.frame(ID = outlier_df$label_name)  %>%  inner_join((environment_trait %>% dplyr::select(ID, SLA)), by = "ID") 
 ```
 So there is four outliersaccording to boxplot analysis, 11-1-742 and 11-4-983 have really abberrant value whereas 13-2-73 and 15-1-198 can be consider are maximum range value for SLA. So here we only delete aberrant value. 
 
-```{r SLA deleted}
-environment_trait <- environment_trait %>% 
-  filter(SLA < 400)
-
-```
-
 ### b)LMDC
-```{r LDMC outliers}
-outliers_name <- environment_trait$ID
-boxplot.with.outlier.label(environment_trait$LMDC,outliers_name) %$% 
-data.frame(ID =outlier_df$label_name) %>%  inner_join((environment_trait %>% dplyr::select(ID, LMDC)), by = "ID") %>% 
-  kable(format = "html") %>%  kable_styling(bootstrap_options = "condensed",  full_width = F)
-
-
+```{r LDMC outliers, echo=FALSE}
+boxplot.with.outlier.label(environment_trait$LDMC,outliers_name,main = "LDMC outliers ") %$% 
+data.frame(ID =outlier_df$label_name) %>%  inner_join((environment_trait %>% dplyr::select(ID, LDMC)), by = "ID") 
 ```
 So there are 7 value that are consider as outliers, only two individuals are really far from de global distribution 2_3_236 and 1-2-387, so we decide to delete those ones.
-```{r}
-environment_trait <- environment_trait %>% 
-  filter(!(LMDC < 0.17 |LMDC > 0.55))
-```
 
 ### c) LT_mean
 
-```{r}
-outliers_name <- environment_trait$ID
-boxplot.with.outlier.label(environment_trait$LT_mean,outliers_name)
-
+```{r LT outliers, echo=FALSE}
+boxplot.with.outlier.label(environment_trait$LT_mean,outliers_name,main = "Leaf thickness outliers ")
 ```
 For Lt_mean there is no outliers ! 
 
 ### d) Chloro content
-```{r}
-boxplot.with.outlier.label(environment_trait$Chloro_content,outliers_name)%$% 
-data.frame(ID= outlier_df$label_name) %>%  inner_join((environment_trait %>% dplyr::select(ID, SLA)), by = "ID") %>% 
-  kable(format = "html") %>%  kable_styling(bootstrap_options = "condensed",  full_width = F)
+```{r chloro outliers, echo=FALSE}
+boxplot.with.outlier.label(environment_trait$Chloro_content,outliers_name, main = "Chlorophyll content outliers ")%$% 
+data.frame(ID= outlier_df$label_name) %>%  inner_join((environment_trait %>% dplyr::select(ID, Chloro_content)), by = "ID")
 ```
 
 there is one outlier so we removed it (justification ?)
 
-```{r}
-environment_trait <- environment_trait %>% 
-  filter(! Chloro_content < 40.5)
-```
-
 ### e)  Area 
 
-```{r LA outliers, message = FALSE}
-outliers_name <- environment_trait$ID
-boxplot.with.outlier.label(environment_trait$Area_exclude,outliers_name)%$% 
-data.frame(ID = outlier_df$label_name)%>%  inner_join((environment_trait %>% dplyr::select(ID, Area_exclude)), by = "ID") %>% 
-  kable(format = "html") %>%  kable_styling(bootstrap_options = "condensed",  full_width = F)
+```{r LA outliers, echo=FALSE}
+boxplot.with.outlier.label(environment_trait$Area_exclude,outliers_name, main = "Leaf area outliers ")%$% 
+data.frame(ID = outlier_df$label_name)%>%  inner_join((environment_trait %>% dplyr::select(ID, Area_exclude)), by = "ID") 
 ```
 
 Here there are 20 individuals which are consider as Area outlier.Some individuals have extremly big leaves, so it is not an measure error. This leaf area variability should be kept in the data set it isa reality of our sampling.
 
+### deleted outliers 
 
+```{r}
+environment_trait$SLA[which(environment_trait$ID == "11_1_742"| environment_trait$ID == "11_4_983")] <- NA
+
+environment_trait$LMDC[which(environment_trait$ID == "2_3_236" |environment_trait$ID == "1_2_387")] <- NA
+
+environment_trait$Chloro_content[which(environment_trait$ID == "15_1_637")] <- NA
+
+```
+
+
+## data distribution 
+
+
+```{r trait distribution , eval=FALSE, include=FALSE}
+
+SLA <- ggplot(environment_trait, aes(SLA))+
+  geom_histogram()
+LDMC <- ggplot(environment_trait, aes(LMDC))+
+  geom_histogram()
+LT <- ggplot(environment_trait, aes(LT_mean))+
+  geom_histogram()
+Chloro <- ggplot(environment_trait, aes(Chloro_content))+
+  geom_histogram()
+Area <- ggplot(environment_trait, aes(Area_exclude))+
+  geom_histogram()
+ Area.log <- ggplot(environment_trait, aes(log10(Area_exclude)))+
+  geom_histogram()
+
+plot_grid(SLA, LDMC, LT, Chloro, Area ,Area.log , ncol = 2, nrow = 3)
+```
+
+
+```{r}
+# summary(environment_trait %>%  dplyr::select(SLA, LMDC, LT_mean, Area_exclude, Chloro_content)) %>% 
+# kable() %>%  kable_styling(bootstrap_options = "condensed",  full_width = F)
+```
 
 ## 3- standardisation 
 
 all variable have been reduce and centered by z-score method to have demensionless variables.
-```{r}
+```{r trait standar}
 trait_standar <- environment_trait %>%
   dplyr::select(n_parcelle, n_carre, n_arbre,LT_mean, Chloro_content, LMDC, SLA, Area_exclude) 
 
@@ -167,55 +180,32 @@ trait_standar[,4:8] <- as.data.frame(scale(as.matrix(trait_standar[,4:8]), cente
 
 ```{r standar envi }
 environment_standar <- environment_trait %>% 
-  dplyr::select(n_parcelle, n_carre, n_arbre, Dawkins,wetness,lBAL,   d_creek, aspect, curvature, TRI, diameter,dem,slope,  d_log_gap, d_gap, alt_creek, ombrage)
+  dplyr::select(n_parcelle, n_carre, n_arbre, Dawkins, lBAL,wetness,   d_creek,dem,slope, d_gap, alt_creek, TRI, curvature) %>% 
+  mutate(alt_creek = as.numeric(alt_creek), Dawkins = as.factor(Dawkins))  
 
-environment_standar[,5:17] <- as.data.frame(scale(as.matrix(environment_standar[,5:17]),scale = TRUE, center = TRUE)) 
+environment_standar[,5:13] <- as.data.frame(scale(as.matrix(environment_standar[,5:13]),scale = TRUE, center = TRUE)) 
 
 ```
-
-
 
 
 ## 4- descriptors selection
 
-### a) dcm elimination 
-So here we have mean heigh value in the 1m cell area that correspond to the focal tree coordinate. As we know there is an allometry from DBH to tree height and here with this plot we try to validate if dcm value for our tree are aberrant or not. 
+```{r}
+acp_envi <- PCA(environment_standar[,5:13], graph =  FALSE)
 
-```{r eval =FALSE}
-plot(environment_trait$diameter, environment_trait$dcm)
+
+fviz_pca_var (acp_envi , axes = c(1, 2), label ="var", scaling =2)
+fviz_pca_var (acp_envi , axes = c(2, 3), label ="var", scaling =2)
+fviz_screeplot(acp_envi, ncp=10)
 ```
-
-There is a small positiv tendency, but not string as it should be expected. Also there is a lot of individual that have an estimate height around 30-40 with only 10-20 diameter and those value do not respect the most simple allmotry equation for height : H= 100* DBH 
-SO it might be better to remove this variable from our analysis. 
-
-```{r eval= F}
-environment_trait <- environment_trait %>% 
-  dplyr::select(-dcm)
-
-```
-
-
-
-### curvature elimination
-
-here it is the general Curvature 
-
-"La sortie principale est la courbure de la surface, cellule par cellule, ajustée à cette cellule et aux huit cellules environnantes. La courbure est la dérivée seconde de la surface ou la pente de la pente." 
-
-As we already have slope, dem and wetness that are linked with topographic landform, I don't think it bring any new or biological information.
 
 ```{r}
 environment_standar <- environment_standar %>% 
-  dplyr::select(-curvature)
-```
+  dplyr::select(-slope, -d_creek, -dem, -curvature, -TRI)
 
-### aspect elimination 
+acp_envi <- PCA(environment_standar[,5:8], graph =  FALSE)
+fviz_pca_var (acp_envi , axes = c(1, 2), label ="var", scaling =2)
 
-Aspect variable is the orientation of slope, measured clockwise in degrees from 0 to 360, where 0 is north-facing, 90 is east-facing, 180 is south-facing, and 270 is west-facing.
-I don't think that this variable can bring any biological information on light or water or nutrient information to understand the distribution of our fonctional trait so it going to be removed.
-```{r}
-# environment_standar <- environment_standar %>% 
-#   dplyr::select(-aspect)
 ```
 
 
@@ -223,7 +213,7 @@ I don't think that this variable can bring any biological information on light o
 
 function to print coeficient of correlation on a pairs plot with an significant test. Here we choose to use Spearman correlation because every environmental variable does not answer to the normal distribution assumption made by the pearson coefficient of correlation. 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 panel.cor <- function(x, y, digits=2, prefix="", cex.cor) {
   usr <- par("usr")
   on.exit(par(usr))
@@ -246,40 +236,26 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor) {
 }
 ```
 
-### environment
-```{r}
-pairs(environment_standar[,4:16], lower.panel = panel.smooth, upper.panel = panel.cor)
+
+```{r data standar}
+
+data_standar <- full_join(environment_standar, trait_standar, by = c("n_parcelle", "n_carre", "n_arbre")) %>% 
+  mutate(ID = paste (n_parcelle, n_carre, n_arbre, sep="_"))
+
+data_standar$SLA[which(data_standar$ID == "11_1_742"| data_standar$ID == "11_4_983")] <- NA
+
+data_standar$LMDC[which(data_standar$ID == "2_3_236" |data_standar$ID == "1_2_387")] <- NA
+
+data_standar$Chloro_content[which(data_standar$ID == "15_1_637")] <- NA
+
+#data_standar %>%  filter( ID == "11_4_983" |ID == "11_1_742" | ID == "2_3_236" |ID == "1_2_387" |ID == "15_1_637" )
+                          
+           
+#write.csv(data_standar, file="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\data_standar.csv")
 ```
 
-A we can see on the plot there are numerus highly correlated variables. This is not so suprising because most of them are derivative variable from the digital elevation model (dem). 
-I choose to consider carrelated variable when the Spearman coefficient is over 0.50 : 
-  - Wetness with TRI, dem, slope, alt_creek 
-  - d_creek with d_log_gap
-  - TRI with slope 
-  - diameter and Dawkins 
-  - dem with alt_creek
-  - aspect with ombrage
-
-So we need to choose between correlated variables the more biologically meaningfull. We are going to keep wetness as our only water presence variable that is one of the three major abiotic ressource for plant. Also we are going to keep diameter as it is important for its interaction with lBAL (competition index with only the sum of neighbors basal area) and its use as a proxy of ontogenic level. Finaley d_creek is seletecd against d_lo_gap that is biologically not have any influence because eploitation traitment have been done years ago ( how many ??) and the sampled leaves cannot have been influence by these log gap due to their reduce leaf life span ( number of year ?). 
-
-The ombrage variable which represent the topographic hillshade derivataded from the digital elevation model,me and diameter. Close to hillshade, aspect is an cell (1m²) exposition variable that depicts the orientation of slope, measured clockwise in degrees from 0 to 360, where 0 is north-facing, 90 is east-facing, 180 is south-facing, and 270 is west-facing. Aspect is a more direct information about light avalaibility so I keep this one. 
 
 
-```{r}
-environment_standar <- environment_standar %>% 
-  dplyr::select(-TRI , -dem , -slope, -alt_creek, -Dawkins, -d_log_gap, -ombrage)
-
-pairs(environment_standar[,4:9], lower.panel = panel.smooth, upper.panel = panel.cor)
-```
-No
-w there are only lBAL and d_creek with a correlation of 0.51 that is over my tolerance threeshold, but I think if this biotic variable covariate with the distance to the creek (abiotic variable) is an biological important information. 
-
-```{r}
-env.pca <- PCA(environment_standar[,4:9], graph = F)
-fviz_pca_biplot(env.pca , axes = c(1, 2), label ="var", scaling =2)
-```
- We can see on this PCA plot two groups separated  by lBAL and d_creek. But these two groups are also by d_gap or by wetness
- 
  Scaling 1 = distance biplot: the eigenvectors are scaled to unit length. (1)
 Distances among objects in the biplot are approximations of their
 Euclidean distances in multidimensional space. (2) The angles among
@@ -292,156 +268,70 @@ between descriptors in the biplot reflect their correlations.
 –– In both cases, projecting an object at right angle on a descriptor approximates the position of the object along that descriptor.
 –– Bottom line: if the main interest of the analysis is to interpret the relationships among objects, choose scaling 1. If the main interest focuses on the relationships among descriptors, choose scaling 2.
 
-### trait 
 ```{r}
-pairs(trait_standar[,4:8], lower.panel = panel.smooth, upper.panel = panel.cor)
+envi_soil <-  environment_trait %>%  filter(!is.na(Carbonmean)) %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre, Dawkins, Carbonmean, Phosphorme ,wetness,lBAL, d_gap, alt_creek ,SLA , LT_mean, Chloro_content, Area_exclude, LMDC) %>% 
+  mutate(alt_creek = as.numeric(alt_creek))
+
+envi_soil[,5:15] <- as.data.frame(scale(as.matrix(envi_soil[,5:15]),scale = TRUE, center = TRUE)) 
+
+#write.csv(envi_soil, file="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\envi_soil.csv")
+
+acp_soil <- PCA(envi_soil[,5:10], graph =  FALSE)
+fviz_pca_var (acp_soil , axes = c(1, 2), label ="var", scaling =2)
+fviz_screeplot(acp_soil, ncp=10)
+
 ```
 
-If we apply the same criterions we will only keep SLA, Area and Chlorocontent. The corelation between SLA , LDMC and LT is not suprising as SLA in a function of both variables. 
+
+```{r}
+
+soil_data <-  environment_trait %>%  filter(!is.na(Carbonmean)) %>% 
+  dplyr::select(Carbonmean, Phosphorme ,wetness, d_gap, alt_creek , TRI, d_creek, curvature, slope, dem, aspect) 
+
+
+
+soil_data[,3:11] <- as.data.frame(scale(as.matrix(soil_data[,3:11]),scale = TRUE, center = TRUE)) 
+
+# C_model<- lm(soil_data$Carbonmean~., data = soil_data[,3:11])
+# step(C_model, direction = "both")
+
+lm(formula = soil_data$Carbonmean ~ alt_creek + d_creek + curvature + 
+    dem, data = soil_data[, 3:11]) %>% summary
+
+
+```
+
+```{r}
+P_model<- lm(log(soil_data$Phosphorme)~., data = soil_data[,3:11])
+step(P_model, direction = "both")
+
+lm(formula = log(soil_data$Phosphorme) ~ alt_creek + TRI + d_creek, 
+    data = soil_data[, 3:11]) %>% summary
+
+
+```
+
+### trait 
+
 
 ```{r}
 trait.pca <- PCA(trait_standar[,4:8], graph = F)
-fviz_pca_biplot(trait.pca , axes = c(1, 2), label ="var", scaling =2)
+fviz_pca_biplot(trait.pca , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")
+fviz_screeplot(trait.pca, ncp=10)
 ```
+
 
 
 ## both 
-```{r}
-cor(environment_standar[,4:9], trait_standar[,4:8],method = "spearman")
-pairs(cbind(environment_standar[,4:9], trait_standar[,4:8]), lower.panel = panel.smooth, upper.panel = panel.cor)
-```
-
-
-
-# lm 
-
-Using standardized data and only uncorrelated data to avoid singularities error in multiplicative model 
-
-## SLA
-### model 
-
-Ackerly et al. (2002)found that SLA was significantly correlated with soil water availability and potential solar insolation. To test this hypothesis too we are going to selected solar insolation variable like lBAL, d_gap and aspect, and variable that depict soil water availability like Wetness wich also give the information of bottomland area which correspond to  river bed area and caratized by a wetness value  between 1.395 and 8.010.
-
-Bottom land area are knonw to be more biologically dynamic which means stand renewal is faster due more frequent tree fall which induce more light gap. An other particularity of bottom land is that the mean canopy hight is lower thant on oter are like slope and hilltop (voir cours stéphane ?), so once again proxymity to creek or being in hight wetness value maybe modulate positvly  light availabilty.  
-
-For every tree sapling and early ontogenic  stage individual are in the uner layer of canopy and as we know light availability descrease from canopy to the ground (ref ? maybe espacially un tropical rain forest). Thus SLA value for younger individual would be hight to maximise light interceptection and so their growth through a better photosynthetic rate. The only variable that depict ontogenic stage is the diameter at breast height and would modulate SLA value but could also habe many interaction with other variable as diamter can inluence competition impact if the diameter of the focal tree is for example highter than its neighbors. Or diamter interaction with d_gap because bigger tree could benefit more from gap light than maybe a smaller one same for creek proximity.
-
-
-
-
-```{r SLA mixte ,echo=F}
-SLA_model <-lm(formula = SLA ~ aspect+diameter+ lBAL + lBAL:diameter+  aspect: diameter + d_creek + wetness + d_gap + d_gap:diameter+d_creek:diameter + wetness:diameter 
-    , data = data_standar[,4:9 &14])
-
-summary(SLA_model)
-```
-
-Adjusted R-squared:  0.2728 so  27.28% of the total variance of SLA value are explained by this model.  Then the H0 of the F statistic test is rejected so there is only 2.2e-16 to made a mistkae when we consider that this model explain something. 
-
-In this SLA_model, a significative p-value of the t-test means that the coefficient is significantly (alpha = 0.05) different from zero. Only beta for aspect, diameter , lBAL:diameter , d_creek: diameter are different from zero.
-
-So, we are going to remove variables withou significant coiefficient : wetness, lBAL, d_creek,d_gap, d_gap:diameter, diameter:wetness, aspect:diameter
-
-```{r}
-SLA_model<- lm(formula = SLA ~  aspect + diameter+ lBAL:diameter + d_creek:diameter  , data = data_standar[,4:9 &14]) 
-
-summary(SLA_model)
-```
-
-So SLA value can be explain by : 
-
-  - the exposition of the cell (aspect) : difficulte to interpret because 0 and 360 correspond to north ... 
-  
-  -diameter have an negative coefficient which mean bigger is the diameter smaller is the SLA.
-  
-  - the interaction between diameter: lBAL , with a negative coefficient so the effect of diameter decrease when the LBAL value decrease too. For a given diameter , a tree with low neighbour crowding (lBAL) would have an highter SLA value than a same diameter with hight neighbors crowding. 
-  
-  - diameter:creek, interaction has a positive coefficient so the effect of diameter increased on the SLA when the distance to the creek increase too. So for a given diameter, tree located far from the creek have smaller SLA value than tree with same diameter closer to the creek.(link with water use efficiency and water availability ?)
-
-```{r}
-plot(SLA_model)
-```
-  
-  - residuals vs fitted seems to be right maybe the variance is a bit increasing when SLA increased too but log transformation do not change this trend. Also three outliers is highlighted 76, 151 and 363. 
-  - QQplot seems right too exepct for three outlilers 
-  - Scale location plot, the red line trend has to be around 0.9, it is not exactly right.     - Residuals vs leverage none of the individuals pass over the cook distance limits but some of them seems to have a strong leverage that can influence the model
-
-As the residuals analysis of the SLA_model seems to good, we can start the result interpretation.
-
-```{r}
-rbind(data_standar[76,], data_standar[151,],data_standar[363,], data_standar[175,])
-```
-The outliers here correspond two SLA outliers spotted previously with boxplot 13_2_73 and 15_1_198 is also an LMDC outliers and the other one 7_3_2806  is not spotted by boxplot.
-
-## LT
-###model 
-
-So leaves would be thicker (so Lth would be highter) in sunnier, dryer and less fertile habitats as well as longer-lived leaves. (pérez, 2013)
-
-So wetness , d_creek should influence thickness value as they are proxy of soil water avalaibility. As we previously saw with SLA diameter and it interaction with d_gap, lBAL and aspect with their respective interaction with diamter can influence light availaibility. 
-
-```{r}
-LT_model <- lm(LT_mean~ wetness + lBAL + d_creek  + diameter + aspect + aspect : diameter+
- d_gap + lBAL:diameter+ d_gap:diameter + diameter:wetness + diameter:d_creek , data=data_standar[,4:11])
-
-summary(LT_model)
-```
-
-
-
-```{r}
-LT_model <- lm(LT_mean~ wetness + lBAL + d_creek  + diameter +
- diameter:lBAL , data=data_standar[, 4:11])
-
-summary(LT_model)
-```
-
-Coefficient : 
-  - Wetness : coeffcient is positive so as expected leaf thickness increased when wetness value increased which mean that the soil water availability decreased (wetness decreased)
-  - lBAL : negative coefficient when crowding is hight leaf thickness descred... don't know what to say about that 
-  - d_creek : as expected and same as wetness highter is the distance between the focal tree and the creek thicker are the leaves. Generally when the distance with the creek is hight soil water availaibility descreased. 
-  -diameter : bigger is the tree diameter thicker are the leaves. It make sense younger tree are under layer canopy and so that light availability is lower than in the canopy. So big diameter means hight tree and so individuals that already have reach the canopy and their leaves are thicker due to an hight exposition to sun.
-  - diameter:lBAL, negative coefficient so the impact of diameter decreased when lBAL decreased. So Leaves would thinner when lBAL value is low. 
-  
-
-
-```{r}
-plot(LT_model)
-```
-
-
-
-
-## LDMC 
-
-LDMC reflect the investment in dense tissue minvestment so it would be more influence by nutrient and water avalaibility (why ??) and by the ontogentic stage becasue young individual may have a strategy only focus on  growth and so photosynthetic capacity whereas older individual are emancipate from those constrains. 
-
-Thickness modulate leaf weight as this one is influence by light intensity and availaibility may be LDMC too ... 
-
-```{r LDMC model 1}
-LDMC_model <- lm(LMDC~ wetness + d_creek + diameter + d_gap + lBAL + aspect+  diameter:lBAL + diameter:d_gap + wetness:diameter + d_creek:diameter, data = data_standar[, 4:9 & 13])
-
-summary(LDMC_model)
-```
-
-```{r LDMC model 2}
-LDMC_model <- lm(formula = LMDC ~ wetness +  diameter + d_gap + 
-    diameter:lBAL + d_creek:diameter, 
-    data = data_standar[, 4:9 & 13])
-
-summary(LDMC_model)
-```
- Coefficient : 
-  - wetness, negativ coefficient LMDC decreased when wetness increased so when tree are located in dryer place ie slope or hilltop
-  - diamter, positif coefficient LMDC increased when diameter increased which mean older tree seems to have more dense leaf tissues. It correspond to theecological strategy shift between under canopy layer tree ( young tree) and canopy or over canopy layer tree (aldult or post opening stage tree)
-  - d_gap, positive coefficient LMDC increase when distance to the gap increase too.  That is not an intuitive result ...
-  -diameter:lBAL, posititve coefficient so the impact of diameter increased  when lBAL increased. So leaf tissues would be more dense for a bigger tree with hight crwding neighbourhood.
-  -diameter:d_creek, negative coefficient so diameter effect on lDMC decresed when d_creek decreased too. As diameter have a positive effect (LMDC increase with diameter) it means that for a tree with a given diameter far from the creek LMDC value will be smaller than a tree with the same diamter close to the creek. Its corroborates wetness negativ coefficient and soil watter avalaibility influence LMDC value. 
-  
-
 ```{r }
-plot(LDMC_model)
+
+pairs(cbind(environment_standar[,5:11], trait_standar[,4:8]), lower.panel = panel.smooth, upper.panel = panel.cor)
 ```
+
+
+
+
 
 
 ## chloro content
@@ -585,14 +475,14 @@ hist((varcomp_data$SLA))
 hist((varcomp_data$LMDC))
 hist((varcomp_data$Chloro_content))
 hist((varcomp_data$LT_mean))
-hist(log10(varcomp_data$Area_exclude))
+hist((varcomp_data$Area_exclude))
 ```
 
 execpt for leaf area distribution that is right squewed , other distribution are not so far from "normal distribution shape"
 ```{r}
-shapiro.test(sqrt(varcomp_data$SLA))
+ shapiro.test((varcomp_data$SLA))
 shapiro.test((varcomp_data$LMDC))
-shapiro.test(sqrt(varcomp_data$Chloro_content))
+ shapiro.test((varcomp_data$Chloro_content))
 shapiro.test((varcomp_data$LT_mean))
 shapiro.test(log10(varcomp_data$Area_exclude))
 ```
@@ -601,14 +491,12 @@ Even if shapiro test do not confirm the normal distribution even after log or sq
 
 ```{r}
 varcomp_data <- varcomp_data %>% 
-  mutate(SLA = sqrt(SLA), Chloro_content= sqrt(Chloro_content), Area_exclude=log10(Area_exclude))
+  mutate( Area_exclude=log10(Area_exclude))
 ```
 
 ## standar deviation test / homoscedasticity test
 
 Heteroscedasticity is much less of a problem when you have a balanced design (equal sample sizes in each group). Early results suggested that heteroscedasticity was not a problem at all with a balanced design (Glass et al. 1972), but later results found that large amounts of heteroscedasticity can inflate the false positive rate, even when the sample sizes are equal (Harwell et al. 1992)
-
-Performs an F test to compare the variances of two samples from normal populations.
 
 Performs Bartlett's test of the null that the variances in each of the groups (samples) are the same.
 
@@ -622,71 +510,166 @@ data_barlett <-reshape::melt(data_barlett,  id=c("ID"))
 
 bartlett.test(data_barlett$value, data_barlett$variable)
 
+
 ```
+
 here p-value is significant so H0 is rejected , variances are not equal.
+```{r}
+# varcomp_data[,7:11] <- as.data.frame(scale(as.matrix(varcomp_data[,7:11]), center = TRUE, scale = TRUE))
+# 
+# mean <- rbind(mean(varcomp_data$SLA), mean(varcomp_data$LMDC), mean(varcomp_data$LT_mean), mean(varcomp_data$Chloro_content), mean(varcomp_data$Area_exclude))
+# 
+# sd <- rbind(sd(varcomp_data$SLA), sd(varcomp_data$LMDC), sd(varcomp_data$LT_sd), sd(varcomp_data$Chloro_content), sd(varcomp_data$Area_exclude))
+# 
+# plot((mean), sd)
+```
+
 
 
 ## varcomp analysis
 
-```{r}
+```{r varcomp SLA}
 varcomp.SLA<-varcomp(lme(SLA~1,
 random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 ```
 
-```{r}
+```{r varcomp LMDC}
 varcomp.LDMC<-varcomp(lme(LMDC~1,
 random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 ```
 
-```{r}
+```{r varcomp LT}
 varcomp.LT<-varcomp(lme(LT_mean~1,
 random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 ```
 
 
-```{r}
+```{r varcomp Area}
 varcomp.Area<-varcomp(lme(Area_exclude~1,
 random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
+```
+
+```{r varcomp chloro}
+varcomp.Chloro<-varcomp(lme(Chloro_content~1,
+random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
+```
+
+
+```{r varcomp resu }
+
+varcomp_resu <- as.data.frame(cbind(varcomp.Area, varcomp.LDMC, varcomp.LT, varcomp.SLA, varcomp.Chloro))
+
+  varcomp_resu <- varcomp_resu %>% mutate( niveau = rownames(varcomp_resu)) %>% 
+    dplyr::rename(Area = "varcomp.Area", LT="varcomp.LT", LDMC = "varcomp.LDMC", SLA = "varcomp.SLA", Chloro = "varcomp.Chloro")
+  
+varcomp_resu$niveau <- factor(varcomp_resu$niveau, levels = varcomp_resu$niveau)    
+
+varcomp_resu <- reshape::melt(varcomp_resu,  id=c("niveau")) %>% 
+  mutate(value1 = as.numeric(value*100)) %>% 
+  mutate(niveau = as.factor(niveau))
+  
+
+```
+
+
+```{r varcomp plot }
+ggplot(varcomp_resu,aes(x = variable, y = value1, fill = niveau, order= niveau))+
+  geom_bar(stat = "identity", position = "stack")+
+  labs(title = "Variance component analysis", y = "fraction of the total variance explained
+       by each scale (value*100) ", x= "functional trait")+
+  scale_fill_brewer(palette="PiYG")
+```
+
+
+
+```{r varcomp PCA }
+
+D.varcop <- as.data.frame(rbind(varcomp.Area, varcomp.LDMC, varcomp.LT, varcomp.SLA, varcomp.Chloro)) 
+
+pca.varcomp <- PCA(D.varcop, graph= F)
+
+fviz_pca_biplot(pca.varcomp , axes = c(1, 2), scaling =1, repel = TRUE)
+```
+
+
+
+
+
+
+### topo category
+
+
+
+
+
+```{r varcomp sla 2}
+varcomp.SLA2<-varcomp(lme(SLA~1,
+random=~1|n_parcelle/topo/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
+```
+
+```{r varcomp lmdc 2 }
+varcomp.LDMC2<-varcomp(lme(LMDC~1,
+random=~1|n_parcelle/topo/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
+```
+
+```{r}
+varcomp.LT2<-varcomp(lme(LT_mean~1,
+random=~1|n_parcelle/topo/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
+```
+
+
+```{r}
+varcomp.Area2<-varcomp(lme(Area_exclude~1,
+random=~1|n_parcelle/topo/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
+```
+
+```{r}
+varcomp.Chloro2<-varcomp(lme(Chloro_content~1,
+random=~1|n_parcelle/topo/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 ```
 
 
 ```{r}
 
-varcomp_resu <- as.data.frame(cbind(varcomp.Area, varcomp.LDMC, varcomp.LT, varcomp.SLA))
+varcomp_resu2 <- as.data.frame(cbind(varcomp.Area2, varcomp.LDMC2, varcomp.LT2, varcomp.SLA2, varcomp.Chloro2))
 
-  varcomp_resu <- varcomp_resu %>% mutate( niveau = rownames(varcomp_resu)) %>% 
-    dplyr::rename(Area = "varcomp.Area", LT="varcomp.LT", LDMC = "varcomp.LDMC", SLA = "varcomp.SLA")
+  varcomp_resu2 <- varcomp_resu2 %>% mutate( niveau = rownames(varcomp_resu2)) %>% 
+    dplyr::rename(Area = "varcomp.Area2", LT="varcomp.LT2", LDMC = "varcomp.LDMC2", SLA = "varcomp.SLA2", Chloro= "varcomp.Chloro2") 
+  
+varcomp_resu2$niveau <- factor(varcomp_resu2$niveau, levels = varcomp_resu2$niveau)    
 
-varcomp_resu <- reshape::melt(varcomp_resu,  id=c("niveau")) %>% 
-  mutate(value = as.integer(value *100))
+varcomp_resu2 <- reshape::melt(varcomp_resu2,  id=c("niveau")) %>% 
+  mutate(value1 = as.numeric(value*100)) %>%  
+  mutate(niveau = as.factor(niveau))
   
 
 ```
 
 
 ```{r}
-ggplot(varcomp_resu,aes(x = variable, y = value , fill = niveau ))+
-  geom_bar(stat = "identity")+
+ggplot(varcomp_resu2,aes(x = variable, y = value1, fill = niveau, order= niveau))+
+  geom_bar(stat = "identity", position = "stack")+
   labs(title = "Variance component analysis", y = "fraction of the total variance explained
-       by each scale (value*100) ", x= "functional trait")
+       by each scale (value*100) ", x= "functional trait")+
+  scale_fill_brewer(palette="PiYG")
 ```
 
 
 
+```{r}
+D.varcop2 <- as.data.frame(rbind(varcomp.Area2, varcomp.LDMC2, varcomp.LT2, varcomp.SLA2, varcomp.Chloro2)) 
+
+pca.varcomp2 <- PCA(D.varcop2, graph= T)
+
+fviz_pca_biplot(pca.varcomp2 , axes = c(1, 2), scaling =1, repel = TRUE)
+```
 
 
+```{r}
+varcomp_resu %>%  filter(niveau == "n_arbre")
 
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+```{r}
+varcomp_resu2 %>%  filter(niveau == "n_arbre")
+```

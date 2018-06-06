@@ -9,12 +9,14 @@ output:
     toc: yes
     toc_depth: 5
     toc_float: yes
+  
 ---
 
 
 ```{r setup, include=FALSE}
 rm(list = ls())
 
+library(knitr)
 library(dplyr)
 library(FactoMineR)
 library(factoextra)
@@ -26,7 +28,7 @@ library("cowplot")
 library(kableExtra)
 library(ggrepel)
 
-path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\"
+path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\data_final"
 
 ```
 
@@ -60,6 +62,7 @@ for (i in 1:nrow(environment_trait)) {
     environment_trait$traitment[i] <- "BIO"
   }
 }
+rm("i")
 
 for (i in 1:nrow(environment_trait)) {
   if( !is.na(environment_trait$wtd[i])) {
@@ -179,10 +182,10 @@ rm("SLA", "LDMC", "LT", "Cc", "outliers_data")
 
 We found two outliers for SLA according to boxplot analysis. Individuals number 13-2-73 and 15-1-198 are respectively a slight  LA outliers (37.9462cm²) and a slight Dry mass outliers (0.1456g) as deviation from global distribution is really small, they can be considered as maximum range values for SLA.
 
-
-
 We found only one outlier (15_1_637) for leaf chlorophyll content. The fifth leaf of this individual have really small mean SPAD value ( SPAD first quartile = 59.80 ; value = 28.83 ) and it negatively influence the mean SPAD value of this individual. Leaf chlorophyll content is negatively influenced by the ontogenic stage and the considered value is lower than the global distribution so is could be due to non mature leaf. Consequently, we chose to remove these outlier.
+
 We detected seven outliers for LDMC, we only chose to remove most deviant individuals : 2_3_236 and 1_2_387 (dry weight first quartile =  0.1480 and third quartile = 0.3162 ; respective value : 0.4132g and 0.0874g ). 
+
 Finally, we detected 18 outliers for leaf area corresponding to natural variation (i.e. young individuals can have big leaves). 
 
 
@@ -192,7 +195,7 @@ environment_trait$LDMC[which(environment_trait$ID == "2_3_236" |environment_trai
 
 environment_trait$Cc[which(environment_trait$ID == "15_1_637")] <- NA
 
-environment_trait %>%  filter(ID == "11_1_742"  | ID == "11_4_983" | ID == "2_3_236"| ID == "1_2_387" | ID == "15_1_637")
+# environment_trait %>%  filter(ID == "11_1_742"  | ID == "11_4_983" | ID == "2_3_236"| ID == "1_2_387" | ID == "15_1_637")
 ```
 
 ## trait distribution 
@@ -365,21 +368,22 @@ Here each Dawkins levels correspond to a significant different diameter class (t
 
 ```{r trait standar, include=FALSE}
 trait_standar <- environment_trait %>%
-  dplyr::select(n_parcelle, n_carre, n_arbre,LT, Cc, LDMC, SLA, LA) 
+  dplyr::select(n_parcelle, n_carre, n_arbre,morphotype_field,LT, Cc, LDMC, SLA, LA) 
 
-trait_standar[,4:8] <- as.data.frame(scale(as.matrix(trait_standar[,4:8]), center = TRUE, scale = TRUE))
+trait_standar[,5:9] <- as.data.frame(scale(as.matrix(trait_standar[,5:9]), center = TRUE, scale = TRUE))
 ```
   
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-trait.pca <- PCA(trait_standar[,4:8], graph = F)
-fviz_pca_biplot(trait.pca , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")
-fviz_screeplot(trait.pca, ncp=10)
+trait_pca <- PCA(trait_standar[,5:9], graph = F)
+fviz_pca_biplot(trait_pca , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")
+#fviz_screeplot(trait_pca, ncp=10)
+round(trait_pca$var$contrib,2)
+cor(trait_standar[,5:9],use = "na.or.complete",  method = "spearman")
 ```
 
 Projection of the first and second axis explain 76.3% of the total inertia, only the first factorial plan is retained. PCA is realized with 401 observations and standardized data (z-score method) but  results does not change with raw data. Chlorophyll content and LDMC are highly correlated and both are negatively correlated to Leaf area.  SLA and Leaf thickness are opposed , weakly correlated to the other variables. 
 
-
-
+This intraspecific corelation pattern correspond to correlation found at the interspectic scale. SLA and LA are knonw to be unrelated (Wright et al,2007)
 
 ## Leaf and Wood functional trait 
 
@@ -419,6 +423,9 @@ trait_Pl <- trait_topo %>%   filter(wtd== "Plateau")
 
 trait_100 <- trait_topo %>%  filter(wtd== "60-100")
 
+cor(trait_60[,2:6],use = "na.or.complete",  method = "spearman")
+cor(trait_Pl[,2:6],use = "na.or.complete",  method = "spearman")
+
 #trait_P100 <- trait_topo %>%  filter(wtd== "100")
 
 BF_100 <-fviz_pca_var(PCA(trait_100[,2:6], graph = F) , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")+
@@ -432,9 +439,18 @@ Pl <-fviz_pca_var(PCA(trait_Pl[,2:6], graph = F) , axes = c(1, 2), label ="var",
 
 plot_grid(BF_60, BF_100, P ,Pl, ncol = 2, nrow = 2)
 
-rm("trait_100", "trait_P", "trait_Pl", "trait_60", "BF_100", "P", "Pl", "BF_60")
+trait_100 <- PCA(trait_100[,2:6], graph = F)
+trait_60 <-PCA(trait_60[,2:6], graph = F)
+trait_P <- PCA(trait_P[,2:6], graph = F)
+trait_Pl <- PCA(trait_Pl[,2:6], graph = F) 
+
+round(trait_Pl$var$contrib,2)
+round(trait_60$var$contrib,2)
+
+#rm("trait_100", "trait_P", "trait_Pl", "trait_60", "BF_100", "P", "Pl", "BF_60")
 
 ```
+
 
 Bottomland with  watertable between 0-60cm : 137 individuals
 Bottomland with  watertable between 60-100cm : 34 individuals
@@ -526,46 +542,59 @@ varcomp.SLA<-varcomp(lme(SLA~1,random=~1|n_parcelle/morphotype_field/n_arbre/n_f
 library(ape)
 library(nlme)
 
-varcomp_data <- read.csv(file.path(path, "varcomp_data.csv"),header = T, dec = ".", sep=",") %>% 
-filter(!(LDMC < 0.17 |LDMC > 0.55)) %>% 
- filter(! Cc < 40.5) 
+varcomp_data <- read.csv(file.path(path, "varcomp_data.csv"),header = T, dec = ".", sep=",") %>%  mutate(LA = log10(LA), ID = paste(n_parcelle, n_carre, n_arbre, sep="_"), Dawkins= as.factor(Dawkins)) 
 
-varcomp_data[,9:13] <- as.data.frame(scale(as.matrix(varcomp_data[,9:13]), center = TRUE, scale = TRUE))
+varcomp_data[,10:15] <- as.data.frame(scale(as.matrix(varcomp_data[,10:15]), center = TRUE, scale = TRUE))
 
-varcomp_data %>% 
-  mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%  dplyr::select(ID,n_feuille,LA) %>%
-  filter(ID == "11_4_983")
+varcomp_data$LDMC[which(varcomp_data$ID == "2_3_236" |varcomp_data$ID == "1_2_387")] <- NA
+
+varcomp_data$Cc[which(varcomp_data$ID == "15_1_637")] <- NA
+
+#varcomp_data %>%  filter(ID == "2_3_236"| ID == "1_2_387" | ID == "15_1_637")
+
+# varcomp_data$class_diameter <- NA
+# 
+# for (i in 1:nrow(varcomp_data)) {
+#   if (varcomp_data$diameter[i] < 30) {
+#     varcomp_data$class_diameter[i] <- "10-30"
+#     
+#     }
+#   else if  (varcomp_data$diameter[i] < 30 | varcomp_data$diameter[i]<= 60) {
+#     varcomp_data$class_diameter[i] <- "30-60"
+#     
+#   }
+#   else if (varcomp_data$diameter[i] > 60) {
+#     varcomp_data$class_diameter[i] <- "60-100"
+#     
+#     }
+# }
+# rm("i")
 ```
 
+### Variance component analysis with ontogenic class 
+Diameter distribution have been diviede in three classes 10-30 for small individual under mean canopy hieght, canopy individual between 30-60, over canopy individuals 60-100
 
-```{r include=FALSE}
+
+```{r varcomp2, include=FALSE}
 varcomp.SLA2<-varcomp(lme(SLA~1,
-random=~1|n_parcelle/topo/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
-```
+random=~1|n_parcelle/morphotype_field/Dawkins/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 
-```{r varcomp lmdc 2, include=FALSE}
 varcomp.LDMC2<-varcomp(lme(LDMC~1,
-random=~1|n_parcelle/topo/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
-```
+random=~1|n_parcelle/morphotype_field/Dawkins/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 
-```{r include=FALSE}
 varcomp.LT2<-varcomp(lme(LT~1,
-random=~1|n_parcelle/topo/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
-```
+random=~1|n_parcelle/morphotype_field/Dawkins/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 
-
-```{r include=FALSE}
 varcomp.Area2<-varcomp(lme(LA~1,
-random=~1|n_parcelle/topo/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
-```
+random=~1|n_parcelle/morphotype_field/Dawkins/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
 
-```{r include=FALSE}
 varcomp.Chloro2<-varcomp(lme(Cc~1,
-random=~1|n_parcelle/topo/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
+random=~1|n_parcelle/morphotype_field/Dawkins/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
+
 ```
 
 
-```{r include=FALSE}
+```{r varcompresu2,include=FALSE}
 
 varcomp_resu2 <- as.data.frame(cbind(varcomp.Area2, varcomp.LDMC2, varcomp.LT2, varcomp.SLA2, varcomp.Chloro2))
 
@@ -578,79 +607,17 @@ varcomp_resu2 <- reshape::melt(varcomp_resu2,  id=c("niveau")) %>%
   mutate(value1 = as.integer(value*100)) %>%  
   mutate(niveau = as.factor(niveau))
   
-rm("varcomp.Chloro2", "varcomp.SLA2", "varcomp.LDMC2", "varcomp.LT2", "varcomp.Area2")
 ```
 
-
-```{r varcomp SLA, include=FALSE}
-varcomp.SLA<-varcomp(lme(SLA~1,
-random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
-```
-
-```{r varcomp LMDC, include=FALSE}
-varcomp.LDMC<-varcomp(lme(LDMC~1,
-random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
-```
-
-```{r varcomp LT, include=FALSE}
-varcomp.LT<-varcomp(lme(LT~1,
-random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
-```
-
-
-```{r varcomp Area, include=FALSE}
-varcomp.Area<-varcomp(lme(LA~1,
-random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
-```
-
-```{r varcomp chloro, include=FALSE}
-varcomp.Chloro<-varcomp(lme(Cc~1,
-random=~1|n_parcelle/morphotype_field/n_arbre/n_feuille, data = varcomp_data ,na.action = na.omit),1)
-```
-
-
-```{r varcomp resu, include=FALSE}
-
-varcomp_resu <- as.data.frame(cbind(varcomp.Area, varcomp.LDMC, varcomp.LT, varcomp.SLA, varcomp.Chloro))
-
-  varcomp_resu <- varcomp_resu %>% mutate( niveau = rownames(varcomp_resu)) %>% 
-    dplyr::rename(Area = "varcomp.Area", LT="varcomp.LT", LDMC = "varcomp.LDMC", SLA = "varcomp.SLA", Chloro = "varcomp.Chloro")
-  
-varcomp_resu$niveau <- factor(varcomp_resu$niveau, levels = varcomp_resu$niveau)    
-
-varcomp_resu <- reshape::melt(varcomp_resu,  id=c("niveau")) %>% 
-  mutate(value1 = as.integer(value*100)) %>% 
-  mutate(niveau = as.factor(niveau))
-
-rm("varcomp.Chloro", "varcomp.SLA", "varcomp.LDMC", "varcomp.LT", "varcomp.Area2")
-```
-
-
-```{r varcomp plot, echo=FALSE}
-ggplot(varcomp_resu,aes(x = variable, y = value1, fill = niveau, order= niveau))+
-  geom_bar(stat = "identity", position = "stack")+
+```{r varcompplot2, echo=FALSE, message=FALSE, warning=FALSE}
+ ggplot(varcomp_resu2,aes(x = variable, y = value1, fill = niveau, order= niveau, na.rm = TRUE))+
+  geom_bar(stat = "identity", position = "stack", na.rm = TRUE)+
   labs(title = "Variance component analysis", y = "fraction of the total variance explained
        by each scale (value*100) ", x= "functional trait")+
   scale_fill_brewer(palette="PiYG")+
-  geom_text(aes(label = value1, group = niveau),position = position_stack(vjust = 0.5))
+  geom_text(aes(label = value1, group = niveau),position = position_stack(vjust = 0.5), na.rm = TRUE)
 ```
 
-```{r echo=FALSE}
- ggplot(varcomp_resu2,aes(x = variable, y = value1, fill = niveau, order= niveau))+
-  geom_bar(stat = "identity", position = "stack")+
-  labs(title = "Variance component analysis", y = "fraction of the total variance explained
-       by each scale (value*100) ", x= "functional trait")+
-  scale_fill_brewer(palette="PiYG")+
-  geom_text(aes(label = value1, group = niveau),position = position_stack(vjust = 0.5))
-```
-
-Without topo : 
-
-The individual level is the major source of variance (53 to 81% of the total variance) in the trait distribution, except for leaf thickness (41%)  for which plot  (39%) also highly contribute to variance. Chlorophyll content and LDMC have bigger internal variance fraction than other traits (respectively 40% and 29%). Morphotype strata  contribute the most to  Leaf area  variance with 29% of the total variance.  Finally leaf strata does not contribute at all in any functional trait variance. 
-With topo : 
-As we can test the parcelle random effect , we can also add an topographic strata random effect to see if some variance can be allocated to the topographic localisation of the sampled individual. Also morphotype categories are correlated to topographic variation but not totally (see bellow) so adding topographic scale would depict variance truly due to morphotype categories. As we can see topographic level replace morphotype variance fraction for Leaf Area, LDMC and Chlorophyll content but not Leaf thickness. Moreover leaf level of variance is now visible (3% and 6%)  and replace a fraction of the within level (random error of the linear mixed model) for Leaf thickness and Specific leaf area  and for the other level nothing change. 
-
-As we have 6 different scales we can associate each one to an environmental source of variation. Plot and topographic level would be associated to environmental filtering and individual, morphotype and leaf to plasticity as it has been defined in Messier *et al,* (2016).
 
 ## Why Leaf thickness is influenced by plot levels ?
 
@@ -661,11 +628,7 @@ rain <- read.csv(file.path(path, "Donnes_tour_a_flux.csv"),header = T, dec = ","
   filter(Mois =="Novembre" | Mois == "Decembre" | Mois == "Octobre")
 
 environment_trait <- environment_trait %>%  mutate(n_parcelle = as.factor(n_parcelle))
-```
 
-
-
-```{r pluie-date, include=FALSE}
 rain <- rain %>%  group_by(Ann.e, Mois,  jour) %>% summarize_at(c( "Pluie") , mean, na.rm = T)
 
 rain_novembre <- rain %>%  filter((Mois == "Novembre")) %>% 
@@ -681,19 +644,12 @@ rain_october <- rain %>%  filter((Mois == "Octobre")) %>%
   mutate(mois2 = 10)
 
 rain_date <- full_join(rain_december,rain_novembre, by = c("Ann.e", "Mois", "jour", "Pluie", "jour2", "mois2"))  
-```
 
-
-```{r include=FALSE}
 rain_date <- full_join(rain_date,rain_october, by = c("Ann.e", "Mois", "jour", "Pluie", "jour2", "mois2"))  %>% 
   mutate(jour2 = as.numeric(jour2)) %>% 
   mutate(Date = ifelse((jour2 < 10),  paste(paste(0,jour2, sep=""), mois2, Ann.e, sep="/"), paste(jour2, mois2, Ann.e, sep="/")))
 
 rm("rain_december","rain_novembre" , "rain", "rain_october")
-```
-
-
-```{r trait-date, include=FALSE}
 
 Measures_Individuals2 <- read.csv(file.path(path, "Measures - Individuals.csv"),header = T, dec = ".", sep=",") %>% 
   dplyr::rename( n_parcelle = "Plot" , n_carre = "Subplot" , n_arbre = "Tree") %>% 
@@ -703,10 +659,6 @@ data <- left_join(environment_trait, Measures_Individuals2, by = c("n_parcelle" 
   mutate( n_parcelle = as.factor(n_parcelle)) %>% 
   dplyr::select(n_parcelle, n_carre, n_arbre, LT , Cc ,SLA , LDMC, LA, Date)
 
-```
-
-
-```{r include=FALSE}
 rain_date$rain_cumul <- NA
 
 rain_date <- rain_date %>%  arrange(mois2, jour2)
@@ -717,14 +669,14 @@ for (i in 2:nrow(rain_date)) {
   rain_date$rain_cumul[i] <- rain_date$Pluie[i]+ rain_date$rain_cumul[i-1]
   
 }
-```
+rm("i")
 
-
-```{r combine trait-rain, include=FALSE}
 data_rain <- left_join(data, rain_date, by="Date") %>% 
   mutate(n_parcelle = as.factor(n_parcelle))
 
-environment_trait <- data_rain %>%  dplyr::select(n_parcelle, n_carre, n_arbre, jour) %>%  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
+environment_trait <- data_rain %>%  dplyr::select(n_parcelle, n_carre, n_arbre, jour, rain_cumul) %>%  inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
+
+
 ```
 
 Paracou station is divided in 16 plots that correspond to an  experimental design for forest disturbance by selective logging experiment released in 1984. So plot can be group by traitement that respectively correspond to : control plot (T0), selective logging (T1) , selective logging and timber stand improvement(TSI)  (T2), selective logging + TSI + fuelwood (T3). Later (1990-1992) three new undisturbed plot have been added to the domain as “biodiversity” plot. As leaf thickness is highly influence by plot strata (in the linear mixed model) we can test if disturbance traitement is the source of difference between plot. 
@@ -781,14 +733,16 @@ geom_point()+
 Daily rain data from Guyaflux tour in function sampling date. We can see that there is an increased rainfall tendency that starts at the beginning of december (01/12/17) with plot number seven. It matches with the beginning of the leaf thickness decreasing tendency.   However rainfall does not increase constantly, the following days have lower daily rain value 06/12, 07/12 (plot 16 sampling date) 14/12 (half of plot 12 and 10)  and 18/12 (plot 6).  But rainfall quantity over days can be considered as cumulative due to ecosystem latency period to incorporate the incoming water. So water availability in the studied ecosystem starts increasing in the beginning of december which correspond to the decrease of leaf thickness. However such tendency under tropical latitude do not have been reported in the litterature. Gotsh et al (2010) did not found significant seasonal decrease between dry and wet season for leaf thickness at the intraspecific level. Moreover, at larger scale  leaf thickness increase along annual rainfall gradient (Santiago, 2003). But at worldwide biome scale it is well known, that species in dryer areas have thicker leaves than other one (Maximov, 1929; Mooney et al., 1978;Specht & Specht, 1989; Schulze et al., 1998; Cunningham et al., 1999; Niinemets, 2001, Wright and Westoby, 2002)
 
 ```{r echo=FALSE}
-
-
 data_rain %>%  group_by(n_parcelle,Date) %>%  summarize_at(c( "LT", "rain_cumul") , mean, na.rm = T) %>% mutate( Date = as.Date(Date, format = "%d/%m/%Y")) %>% 
   ggplot(aes(LT,rain_cumul, color= Date))+
   geom_point()+
-  geom_text_repel(aes(label = n_parcelle))
-  
-  
+  geom_text_repel(aes(label = n_parcelle))+
+geom_smooth(method='lm',formula=y~x, se = FALSE)
+
+```
+
+```{r echo=FALSE}
+summary(lm(LT~rain_cumul, data= (data_rain %>%  group_by(n_parcelle,Date) %>%  summarize_at(c( "LT", "rain_cumul") , mean, na.rm = T) %>% mutate( Date = as.Date(Date, format = "%d/%m/%Y")))))
 ```
 
 
@@ -833,22 +787,23 @@ environment_trait$Cc[which(environment_trait$ID == "15_1_637")] <- NA
 
 
 data_standar<- environment_trait %>% 
-  dplyr::select(n_parcelle, n_carre, n_arbre,morphotype_field, jour,diameter,  lBAL, wetness, d_gap, Carbon, Phosphorus, SLA, LA, LT, LDMC, Cc, BT, BD, WD) %>% 
+  dplyr::select(n_parcelle, n_carre, n_arbre,morphotype_field, jour, rain_cumul,diameter,  lBAL, wetness, d_gap, Carbon, Phosphorus, SLA, LA, LT, LDMC, Cc, BT, BD, WD) %>% 
   mutate(n_parcelle = as.factor(n_parcelle) ,LA = log10(LA))
 
-data_standar [,6:19]<- as.data.frame(scale(as.matrix(data_standar[,6:19]),scale = TRUE, center = TRUE)) 
+data_standar [,6:20]<- as.data.frame(scale(as.matrix(data_standar[,6:20]),scale = TRUE, center = TRUE)) 
 
 envi_soil <-  environment_trait %>%  filter(!is.na(Carbon)) %>% 
-  dplyr::select(n_parcelle, Dawkins, jour, diameter, Carbon, Phosphorus ,wetness,lBAL, d_gap, alt_creek ,SLA , LT, Cc, LA, LDMC, BT, BD, WD) 
+  dplyr::select(n_parcelle, Dawkins, jour, rain_cumul, diameter, Carbon, Phosphorus ,wetness,lBAL, d_gap, alt_creek ,SLA , LT, Cc, LA, LDMC, BT, BD, WD) 
 
-envi_soil[,4:17] <- as.data.frame(scale(as.matrix(envi_soil[,4:17]),scale = TRUE, center = TRUE))
+envi_soil[,4:18] <- as.data.frame(scale(as.matrix(envi_soil[,4:18]),scale = TRUE, center = TRUE))
+
+rm("data", "data_rain","Measures_Individuals2", "rain_date")
 ```
 Standardized data and LA log10 transformed
 
 ##  Multi trait linear analysis : RDA
 
 ### Leaf traits
-
 
 ```{r message=FALSE, warning=FALSE, , message=FALSE, include=FALSE}
 library(ade4)
@@ -879,18 +834,39 @@ rda_trait <- rda(trait_center,data_standar[,6:8],scale = T, na.omit= T)
 
 Accumulated constrained eigenvalues
 Importance of components:Proportion Explained for RDA1 and RDA2 correspond to explained percentage on graph
-```{r echo=FALSE}
+
+```{r RDAplot, echo=FALSE}
 library(ggvegan)
 library(ggord)
 
 # ggord(rda_trait,grp_in =  data_standar$morphotype ,ptslab = TRUE, addsize = 5, parse = TRUE, repel = TRUE, coord_fix = TRUE, veclsz = 1) 
+
 source("C:/Users/emduc/Desktop/symphostage/ninoplot.R")  
 
-rda_trait %>% ninoplot(arrows = TRUE,layers = c("species", "sites", "biplot", "centroids"), palettage = TRUE,mypal = "Accent", quali_sup = data_standar$morphotype_field)#add argument    
+rda_trait %>% ninoplot(arrows = TRUE,layers = c("species", "sites", "biplot", "centroids"), palettage = TRUE,mypal = "Accent", quali_sup = data_standar$morphotype_field, scaling = 2 )#add argument    
 
 # autoplot(rda_trait, arrows = TRUE, legend = "none",layers = c("species", "sites", "biplot", "centroids"))
 
 ```
+
+
+```{r eval=FALSE, include=FALSE}
+summary(rda_trait)
+```
+
+Scaling :2from  Zuur *et al,* 2007
+
+1. Sites can be projected perpendicularly on lines (species or explanatory)
+    indicating the values of the species or explanatory variables at those sites.
+ 2. Distances between sites cannot be compared directly with each other.
+ 3. All angles between lines reflect their correlation.
+    But these are not as accurate as the ones obtained by a PCA of the explanatory variables.
+ 4. Length of lines is not important
+ 
+The total variance of the data set, partitioned into constrained and unconstrained variances, is a standard result. This result shows how much variation in your response variables was redundant with the variation in your explanatory variables. If the constrained variance is much higher than your unconstrained variance, the analysis suggests that much of the variation in the response data may be accounted for by your explanatory variables. If, however, there is a large proportion of unconstrained variation (i.e. variation in your response matrix that is non-redundant with the variation in the explanatory matrix), then the results should be interpreted with caution as only a small amount of the variation in your response matrix is displayed.
+
+Each RDA axis has an eigenvalue associated with it. As the total variance of the solution is equivalent to the sum of all eigenvalues (constrained an unconstrained), the proportion of variance explained by each axis is simply the quotient of a given eigenvalue with the total variance of the solution.
+
 
 ### Wood traits 
 
@@ -924,6 +900,7 @@ rda_trait2 %>% ninoplot(arrows = TRUE,layers = c("species", "sites", "biplot", "
 
 ##  Univariate analysis : linear model
 
+
 Functional traits and environmental variables are standardized by z-score method. Interaction between focal tree diameter and sum of  the local basal area (lBAL) is added to the following model as neighbor competition effect is vary according to the focal tree diameter. 
 
 ### SLA model 
@@ -931,14 +908,14 @@ Functional traits and environmental variables are standardized by z-score method
 
 ```{r SLA mixte, eval=FALSE, include=TRUE}
 
-SLA_model <-lm(formula = data_standar$SLA ~ diameter + diameter:lBAL + lBAL + wetness + diameter:wetness  , data = data_standar[,5:10])
+SLA_model <-lm(formula = data_standar$SLA ~ diameter + diameter:lBAL + lBAL + wetness + diameter:wetness + d_gap + diameter:d_gap , data = data_standar)
 step(SLA_model, direction = "both")
 
 ```
 
 
 ```{r echo=TRUE}
-SLA_model <- lm(formula = data_standar$SLA ~ diameter + lBAL + wetness + diameter:wetness,data = data_standar[, 5:10])
+SLA_model <- lm(formula = data_standar$SLA ~ diameter + lBAL + wetness + diameter:wetness,data = data_standar)
 summary(SLA_model)
 ```
 
@@ -961,17 +938,17 @@ Imp_SLA <- Imp_SLA %>%  mutate(Variables = row.names(Imp_SLA), Trait = rep("SLA"
   
 #### adding soil data
 
-```{r  eval=FALSE, include=TRUE}
-envi_soil <- envi_soil %>%  filter(!is.na(Dawkins))
 
-SLA_soil <- lm(formula = envi_soil$SLA ~ diameter + diameter:lBAL + lBAL + wetness +Carbon + Phosphorus, data = envi_soil[,1:8])
+```{r  eval=FALSE, include=TRUE}
+SLA_soil <- lm(formula = envi_soil$SLA ~ diameter + diameter:lBAL + lBAL + wetness + diameter:wetness + d_gap +Carbon + Phosphorus, data = envi_soil)
 
 step(SLA_soil , direction = "both")
 ```
 
 
 ```{r include=FALSE}
-SLA_soil <-lm(formula = envi_soil$SLA ~ diameter + lBAL + wetness + diameter:lBAL,data = envi_soil[, 1:8])
+SLA_soil <-lm(formula = envi_soil$SLA ~ diameter + lBAL + wetness + d_gap + 
+    diameter:lBAL, data = envi_soil)
 
 ```
 
@@ -987,7 +964,7 @@ Imp_SLA_soil<- Imp_SLA_soil%>%  mutate(Variables = row.names(Imp_SLA_soil), Trai
 #### general environment
 
 ```{r LDMC model 1, eval=FALSE, include=TRUE}
-LDMC_model <- lm(data_standar$LDMC~ diameter + diameter:lBAL + lBAL + wetness+ diameter:wetness, data = data_standar[,5:10])
+LDMC_model <- lm(data_standar$LDMC~ diameter + diameter:lBAL + lBAL + wetness+ diameter:wetness + d_gap + diameter:d_gap, data = data_standar)
 
 step(LDMC_model, direction = "both")
 ```
@@ -995,7 +972,7 @@ step(LDMC_model, direction = "both")
 ```{r LDMC model 2, echo=FALSE}
 
 LDMC_model <- lm(formula = data_standar$LDMC ~ diameter + lBAL + wetness + 
-    diameter:lBAL, data = data_standar[, 5:10])
+    d_gap + diameter:lBAL, data = data_standar)
 
 summary(LDMC_model)
 ```
@@ -1016,14 +993,13 @@ Imp_LDMC <- Imp_LDMC %>%  mutate(Variables = row.names(Imp_LDMC), Trait = rep("L
 
 
 ```{r  eval=FALSE, include=TRUE}
-LDMC_soil <- lm(formula = envi_soil$LDMC ~  diameter + diameter:lBAL + lBAL + wetness +Carbon + Phosphorus , data = envi_soil[,1:8])
+LDMC_soil <- lm(formula = envi_soil$LDMC ~  diameter + diameter:lBAL + lBAL + wetness+ diameter:wetness+ d_gap +Carbon + Phosphorus , data = envi_soil)
 
 step(LDMC_soil , direction = "both")
 ```
 
 ```{r ,include=FALSE}
-LDMC_soil <- lm(formula = envi_soil$LDMC ~ diameter + lBAL + wetness + diameter:lBAL, 
-    data = envi_soil[, 1:8])
+LDMC_soil <- lm(formula = envi_soil$LDMC ~ diameter + lBAL + wetness + diameter:lBAL,data = envi_soil)
 ```
 
 
@@ -1039,15 +1015,14 @@ Imp_LDMC_soil<- Imp_LDMC_soil%>%  mutate(Variables = row.names(Imp_LDMC_soil), T
 
 
 ```{r eval=FALSE, include=TRUE}
-LT_model <- lm(data_standar$LT~ diameter + diameter:lBAL + lBAL + wetness +diameter:wetness , data = data_standar)
+LT_model <- lm(data_standar$LT~ diameter + diameter:lBAL + lBAL + wetness +diameter:wetness +d_gap, data = data_standar)
 
 step(LT_model, direction = "both")
 ```
 
 
 ```{r echo=FALSE}
-LT_model <- lm(formula = data_standar$LT ~ diameter + diameter:lBAL + lBAL + 
-    wetness + diameter:wetness, data = data_standar)
+LT_model <- lm(formula = data_standar$LT ~ diameter + lBAL + wetness + diameter:lBAL + diameter:wetness, data = data_standar)
 
 summary(LT_model)
 ```
@@ -1091,23 +1066,22 @@ Imp_LT_soil<- Imp_LT_soil%>%  mutate(Variables = row.names(Imp_LT_soil), Trait =
 
 ### stable LT data
 
-
 ```{r include=FALSE}
 LT_decrease <- c("3","7","2","16","8","9","10","11","12","6") 
-data_LT <- data_standar %>% mutate(n_parcelle = as.factor(n_parcelle)) %>%  filter (!n_parcelle %in% LT_decrease )
+data_LT <- data_standar %>% mutate(n_parcelle = as.factor(n_parcelle)) %>%  filter (!n_parcelle %in% LT_decrease ) 
 
 soil_LT <- envi_soil %>%  filter( n_parcelle != "6" & n_parcelle != "11")
 ```
 
 
-```{r eval=FALSE, include=FALSE}
-LT_model2 <- lm(LT~ diameter + diameter:lBAL + lBAL + wetness +diameter:wetness+jour , data = data_LT)
+```{r}
+LT_model2 <- lm(LT~ diameter + diameter:lBAL + lBAL + wetness +diameter:wetness+ d_gap + diameter:d_gap +jour + rain_cumul , data = data_LT)
 
 step(LT_model2, direction = "both")
 ```
 
 ```{r echo=FALSE}
-LT_model2 <- lm(formula = LT ~ diameter + wetness + diameter:wetness, data = data_LT)
+LT_model2 <- lm(formula = LT ~ diameter + lBAL + wetness + d_gap + rain_cumul + diameter:lBAL + diameter:wetness, data = data_LT)
 summary(LT_model2)
 ```
 
@@ -1127,16 +1101,14 @@ summary(LT_model2)
 
 ### sample day 
  
-
-```{r eval=FALSE, include=FALSE}
-LT_model3 <- lm(LT~ diameter + diameter:lBAL + lBAL + wetness +diameter:wetness+ jour , data = data_standar)
+```{r}
+LT_model3 <- lm(LT~ diameter + diameter:lBAL + lBAL + wetness +diameter:wetness+ d_gap + diameter:d_gap + jour + rain_cumul , data = data_standar)
 
 step(LT_model3, direction = "both")
 ```
 
 ```{r}
-LT_model3 <- lm(formula = LT ~ diameter + wetness + jour + diameter:wetness, 
-    data = data_standar)
+LT_model3 <- lm(formula = LT ~ diameter + wetness + d_gap + rain_cumul + diameter:wetness, data = data_standar)
 summary(LT_model3)
 ```
 
@@ -1145,14 +1117,14 @@ summary(LT_model3)
 
 ```{r eval=FALSE, include=TRUE}
 
-LT_soil <- lm(formula = envi_soil$LT ~diameter + diameter:lBAL + lBAL + wetness + Carbon+ Phosphorus +jour , data = envi_soil)
+LT_soil <- lm(formula = envi_soil$LT ~diameter + diameter:lBAL + lBAL + wetness+d_gap + Carbon+ Phosphorus +jour+rain_cumul , data = envi_soil)
 
 step(LT_soil,  direction = "both")
         
 ```
 
 ```{r echo=FALSE}
-LT_soil <- lm(formula = envi_soil$LT ~ diameter + lBAL + jour + diameter:lBAL, data = envi_soil)
+LT_soil <- lm(formula = envi_soil$LT ~ diameter + rain_cumul, data = envi_soil)
 summary(LT_soil)
 ```
 
@@ -1162,14 +1134,13 @@ summary(LT_soil)
 
 
 ```{r eval=FALSE, include=TRUE}
-Cc_model <- lm(data_standar$Cc~diameter + diameter:lBAL + lBAL + wetness + diameter:wetness , data = data_standar[,5:10])
+Cc_model <- lm(data_standar$Cc~diameter + diameter:lBAL + lBAL + wetness + diameter:wetness + d_gap + diameter:d_gap , data = data_standar)
 
 step(Cc_model, direction = "both")
 ```
 
 ```{r echo=FALSE}
-Cc_model <- lm(formula = data_standar$Cc ~ diameter + lBAL + wetness, data = data_standar[, 
-    5:10])
+Cc_model <-lm(formula = data_standar$Cc ~ diameter + lBAL + wetness, data = data_standar)
 
 summary(Cc_model)
 ```
@@ -1190,15 +1161,15 @@ Imp_Cc <- Imp_Cc %>%  mutate(Variables = row.names(Imp_Cc), Trait = rep("Cc", nr
 #### adding soil data 
 
 ```{r eval=FALSE, include=TRUE}
-Cc_soil <- lm(formula = envi_soil$Cc ~diameter + diameter:lBAL + lBAL + wetness +Carbon + Phosphorus, data = envi_soil[,1:8])
+Cc_soil <- lm(formula = envi_soil$Cc ~diameter + diameter:lBAL + lBAL + wetness+diameter:wetness + d_gap +Carbon + Phosphorus, data = envi_soil)
 
 step(Cc_soil,  direction = "both")
         
 ```
 
 ```{r echo=FALSE}
-Cc_soil <- lm(formula = envi_soil$Cc ~ diameter + lBAL + wetness, data = envi_soil[, 
-    1:8])
+Cc_soil <- lm(formula = envi_soil$Cc ~ diameter + lBAL + wetness + d_gap, 
+    data = envi_soil)
 summary(Cc_soil)
 ```
 
@@ -1215,14 +1186,13 @@ Imp_Cc_soil<- Imp_Cc_soil%>%  mutate(Variables = row.names(Imp_Cc_soil), Trait =
 
 
 ```{r eval=FALSE, include=TRUE}
-LA_model <- lm(data_standar$LA~ diameter + diameter:lBAL + lBAL + wetness + diameter:wetness , data = data_standar)
+LA_model <- lm(data_standar$LA~ diameter + diameter:lBAL + lBAL + wetness + diameter:wetness + d_gap + diameter:d_gap , data = data_standar)
 
 step(LA_model, direction = "both")
 ```
 
 ```{r echo=FALSE}
-LA_model <-lm(formula = data_standar$LA ~ diameter + lBAL + wetness, data = data_standar[, 
-    5:10])
+LA_model <-lm(formula = data_standar$LA ~ diameter + lBAL + wetness, data = data_standar)
 
 summary(LA_model)
 ```
@@ -1244,15 +1214,14 @@ Imp_LA <- Imp_LA %>%  mutate(Variables = row.names(Imp_LA), Trait = rep("LA", nr
 #### adding soil data 
 
 ```{r eval=FALSE, include=TRUE}
-LA_soil <- lm(formula = envi_soil$LA ~ diameter + diameter:lBAL + lBAL + wetness +Carbon+Phosphorus, data = envi_soil[,1:8])
+LA_soil <- lm(formula = envi_soil$LA ~ diameter + diameter:lBAL + lBAL + wetness +diameter:wetness + d_gap+Carbon+Phosphorus, data = envi_soil)
 
 step(LA_soil,  direction = "both")
         
 ```
 
 ```{r include=FALSE}
-LA_soil <-lm(formula = envi_soil$LA ~ diameter + lBAL + wetness + diameter:lBAL, 
-    data = envi_soil[, 1:8])
+LA_soil <-lm(formula = envi_soil$LA ~ diameter + lBAL + wetness + diameter:lBAL + diameter:wetness, data = envi_soil)
 ```
 
 
@@ -1269,12 +1238,12 @@ Imp_LA_soil<- Imp_LA_soil%>%  mutate(Variables = row.names(Imp_LA_soil), Trait =
 
 ```{r eval=FALSE, include=TRUE}
 
-BT_model <- lm(formula= data_standar$BT~ diameter + diameter:lBAL + lBAL + wetness +  diameter:wetness , data = data_standar[,5:10])
+BT_model <- lm(formula= data_standar$BT~ diameter + diameter:lBAL + lBAL + wetness +  diameter:wetness + d_gap + diameter:d_gap , data = data_standar)
 step(BT_model, direction = "both")
 ```
 
 ```{r echo=FALSE}
-BT_model <- lm(formula = data_standar$BT ~ diameter, data = data_standar[,5:10])
+BT_model <- lm(formula = data_standar$BT ~ diameter, data = data_standar)
 
 summary(BT_model)
 ```
@@ -1295,14 +1264,14 @@ Imp_BT <- Imp_BT %>%  mutate(Variables = row.names(Imp_BT), Trait = rep("BT", nr
 #### adding soil data 
 
 ```{r eval=FALSE, include=TRUE}
-BT_soil <- lm(formula = envi_soil$BT ~diameter + diameter:lBAL + lBAL + wetness + Carbon + Phosphorus, data = envi_soil[,1:8])
+BT_soil <- lm(formula = envi_soil$BT ~diameter + diameter:lBAL + lBAL + wetness+diameter:wetness+d_gap + Carbon + Phosphorus, data = envi_soil)
 
 step(BT_soil,  direction = "both")
 ```
 
 ```{r echo=FALSE}
 BT_soil <- lm(formula = envi_soil$BT ~ diameter + lBAL + wetness + Carbon, 
-    data = envi_soil[, 1:8]) 
+    data = envi_soil) 
 summary(BT_soil)
 ```
 
@@ -1328,13 +1297,13 @@ Imp_BT_soil<- Imp_BT_soil%>%  mutate(Variables = row.names(Imp_BT_soil), Trait =
 
 ```{r eval=FALSE, include=TRUE}
 
-BD_model <- lm(formula= data_standar$BD~ diameter + diameter:lBAL + lBAL + wetness +  diameter:wetness , data = data_standar[,5:10])
+BD_model <- lm(formula= data_standar$BD~ diameter + diameter:lBAL + lBAL + wetness +  diameter:wetness +d_gap , data = data_standar)
 step(BD_model, direction = "both")
 ```
 
 ```{r echo=FALSE}
-BD_model <- lm(formula = data_standar$BD ~ diameter + wetness, data = data_standar[, 
-    5:10])
+BD_model <- lm(formula = data_standar$BD ~ diameter + wetness + d_gap, data = data_standar)
+
 
 summary(BD_model)
 ```
@@ -1355,14 +1324,14 @@ Imp_BD <- Imp_BD %>%  mutate(Variables = row.names(Imp_BD), Trait = rep("BD", nr
 #### adding soil data
 
 ```{r eval=FALSE, include=TRUE}
-BD_soil <- lm(formula = envi_soil$BD ~ diameter + diameter:lBAL + lBAL + wetness +Carbon+Phosphorus, data = envi_soil[,1:8])
+BD_soil <- lm(formula = envi_soil$BD ~ diameter + diameter:lBAL + lBAL + wetness +Carbon+Phosphorus, data = envi_soil)
 
 step(BD_soil,  direction = "both")
 ```
 
 ```{r echo=FALSE}
 BD_soil <-lm(formula = envi_soil$BD ~ diameter + lBAL + wetness + Carbon, 
-    data = envi_soil[, 1:8]) 
+    data = envi_soil) 
 summary(BD_soil)
 ```
 
@@ -1387,7 +1356,7 @@ Imp_BD_soil<- Imp_BD_soil%>%  mutate(Variables = row.names(Imp_BD_soil), Trait =
 
 ```{r eval=FALSE, include=TRUE}
 
-WD_model <- lm(formula= data_standar$WD~diameter + diameter:lBAL + lBAL + wetness  + diameter:wetness , data = data_standar[,5:10])
+WD_model <- lm(formula= data_standar$WD~diameter + diameter:lBAL + lBAL + wetness  + diameter:wetness + d_gap + diameter:d_gap , data = data_standar[,5:10])
 step(WD_model, direction = "both")
 ```
 
@@ -1506,16 +1475,16 @@ Summary table for additive model fitted for eall functionnal trait with a sub-sa
 Soil data cover plot number 1-6-11-13-14-15, two of them correspond to hightly decreasing leaf thickness measures (6 and 11) so they have been removed. 
 
 ```{r echo=FALSE}
-model_tab = matrix(NA, ncol = 3, nrow = 10)
+model_tab = matrix(NA, ncol = 3, nrow = 11)
 model_tab <- as.data.frame(model_tab)
 
 names(model_tab)<- c("Variables","LT_total", "LT_stable")
 
-model_tab$Variables<- c("Intercept","Diameter"," lBAL  ","Diameter:lBAL", "Wetness", "Diameter:wetness", "Carbon", "Phosphorus","jour" ,"Adjusted R²")
+model_tab$Variables<- c("Intercept","Diameter"," lBAL  ","Diameter:lBAL", "Wetness", "Diameter:wetness", "Carbon", "Phosphorus","jour", "rain_cumul","Adjusted R²")
 
-model_tab$LT_total <- c("[+]***", "[+]***",NA,NA, "[+]**","[-]*", NA,NA,"[-]***","0.5066") 
+model_tab$LT_total <- c("[+]", "[+]***",NA,NA, "[+]**","[-]*", "[+]*",NA,NA, "[-]***","0.5516") 
 
-model_tab$`LT_stable`<- c("[+]***","[+]***",NA, NA, "[+]","[-]*", NA,NA,NA,"0.2763") 
+model_tab$`LT_stable`<- c("[-]*","[+]*","[-]","[+]", "[+]","[-].", NA,NA,"[+]*","[-]**","0.2975") 
 
 for(i in 2:ncol(model_tab)){
   for(j in 1:nrow(model_tab)){
@@ -1537,6 +1506,7 @@ kable(model_tab,"html", escape = F) %>%  kable_styling(bootstrap_options = c("st
 
 ```
 
+In theory, larger leaves have thicker boundary layers and thus overheat more easily than smaller leaves, leading to higher respiration and transpiration costs (Givnish, 1978). In leaf area model, wetness parameter positively influence the distribution. As bottomland are non limitant water area so transpiration cost would be reduce and individual could developp bigger leaf without increasing transpiration costs.
 
 ```{r include=FALSE}
 rm("model_tab")
@@ -1661,6 +1631,28 @@ fviz_pca_biplot(trait_pca , axes = c(1, 2), label ="var", habillage = 6,  col.va
 
 ```
 
+
+```{r echo=FALSE}
+
+ggord(trait_pca, grp_in = trait_standar$morphotype_field , hull = TRUE, axes = c("1", "2"), ellipse = FALSE, scaling = 2, poly = FALSE, size = 1, repel = TRUE, ext = 2)
+```
+
+
+
+```{r environment standar2, include=FALSE}
+environment_standar <- environment_trait %>% 
+  dplyr::select(lBAL,wetness, d_gap,morphotype_field)
+# environment_standar[,1:3] <- as.data.frame(scale(as.matrix(environment_standar[,1:3]),scale = TRUE, center = TRUE)) 
+```
+
+
+```{r}
+acp_envi <- PCA(environment_standar, quali.sup = 4, graph =  FALSE)
+fviz_pca_biplot (acp_envi , axes = c(1, 2), scaling =2, habillage = 4,  col.var = "black", label = "var")
+```
+
+63.1% of
+
 Globulifera and Sp.1 morphotype 
 
 
@@ -1674,6 +1666,11 @@ trait_pca <- PCA(trait_standar[, c("SLA", "LT", "LDMC", "morphotype_field")], qu
 
 fviz_pca_biplot(trait_pca , axes = c(1, 2), label ="var", habillage = 4,  col.var = "black")
 ```
+
+# Does morphotypes respond to the Corner's rule ?
+
+Morphotypes can be identified by different characters, two of them are leaf and fruit size. Globulifera would have bigger fruit and leaves whereas Sp.1 would have smaller leaves and fruits. This pattern is known as the Corner's Rules(Corner, 1949; Ackerly and Donoghue, 1998; Cornelissen, 1999; Westoby and Wright, 2003). As we do not have fruit size data, we can at least confirm that this leaf size association is due to morphotype and not to ontogenetic stage. 
+
 
 
 

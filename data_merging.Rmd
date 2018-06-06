@@ -22,6 +22,19 @@ Traits_brut_data <- read.csv(file.path(path, "Full_traits_data.csv"),header = T,
 
 # Traits_brut_data %>% mutate(ID2 = paste(n_parcelle, n_carre, n_arbre,  sep="_")) %>%  dplyr::select(ID2,Area_exclude) %>%
 #    filter(ID2 == "11_1_742" | ID2 == "11_4_983")
+
+Traits_brut_data$SPAD_mean[which(Traits_brut_data$ID == "15_1_637_5")] <- NA #remove outliers
+
+#Traits_brut_data %>% filter(ID == "15_1_637_5")
+
+Traits_brut_data$Fresh_weight[which(Traits_brut_data$ID == "2_3_2530_1")] <- NA # Fresh_weight = 4.478
+Traits_brut_data$Dry_Weight[which(Traits_brut_data$ID == "2_3_2530_1")] <- NA 
+
+Traits_brut_data$Fresh_weight[which(Traits_brut_data$ID == "2_3_236_2")] <- NA # fresh < dry not possible
+Traits_brut_data$Dry_Weight[which(Traits_brut_data$ID == "2_3_236_2")] <- NA
+
+Traits_brut_data %>% mutate(ID = paste(n_parcelle,n_carre,n_arbre, sep="_")) %>% dplyr::select(ID,n_feuille, Dry_Weight, Fresh_weight) %>% 
+  filter( ID == "11_1_742" | ID == "11_4_983" | ID == "2_3_236" | ID =="1_2_387" | ID =="13_2_73" | ID =="15_1_198" |ID =="2_3_2530"  ) # checking outliers
 ```
 
 #varcomp data
@@ -31,7 +44,8 @@ Psecial data fram for varcomp analysis with the leaf level
 varcomp_data <- Traits_brut_data %>% mutate(SLA = (Area_exclude / Dry_Weight)) %>%
   mutate(LMDC = Dry_Weight/ Fresh_weight) %>%
   mutate(Chloro_content = ((154.1* SPAD_mean)/(197.6-SPAD_mean))) %>%
-  dplyr::select( n_parcelle, n_carre, n_arbre , n_feuille,morphotype,  morphotype_field,diameter, SLA, LMDC , Chloro_content, Area_exclude,LT_mean  )
+  dplyr::select( n_parcelle, n_carre, n_arbre , n_feuille,morphotype,  morphotype_field,Dawkins,diameter, SLA, LMDC , Chloro_content, Area_exclude,LT_mean  )
+
 
 ```
 
@@ -116,9 +130,12 @@ environment_trait <- trait_final %>%  inner_join(environment, by = c("n_parcelle
 
 ```{r}
  varcomp_data<- environment_trait %>% dplyr::select(n_parcelle, n_carre, n_arbre, topo) %>% 
- inner_join(varcomp_data, by = c("n_parcelle", "n_carre", "n_arbre")) %>% rename(LDMC = LMDC , LT = LT_mean , LA = Area_exclude , Cc = Chloro_content) %>% mutate(topo = as.character(topo))
+ inner_join(varcomp_data, by = c("n_parcelle", "n_carre", "n_arbre")) %>% rename(LDMC = LMDC , LT = LT_mean , LA = Area_exclude , CC = Chloro_content) %>%mutate(Dawkins = gsub("A","",Dawkins)) %>% 
+  mutate(Dawkins = gsub("B","",Dawkins)) %>% 
+  mutate(Dawkins = gsub("C","",Dawkins)) %>% 
+ mutate(topo = as.character(topo), Dawkins = as.factor(Dawkins))
 
- write.csv(varcomp_data, file ="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\varcomp_data.csv" )
+ write.csv(varcomp_data, file ="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\data_final\\varcomp_data.csv" )
 ```
 
 merging environmental data with transformed trait data, only 401 are in commun so one individual is missing lets found which one 
@@ -133,12 +150,11 @@ So 14-2-459 is present in environment data base
 ## environment from neighbour basal area 
 
 ```{r}
-G_neighbour <- read.csv(file.path(path, "Full_Gneighbour.csv"),header = T, dec = ".", sep=",")
+lBAL <- read.csv(file.path(path, "Full_lBAL.csv"),header = T, dec = ".", sep=",") %>% rename( lBAL = GNeighbors)
 
-G_neighbour <- G_neighbour %>% 
-  dplyr::select(PointWeight, nNeighbors, GNeighbors, n_parcelle, n_carre, n_arbre )
 
-environment_trait <- G_neighbour %>% 
+
+environment_trait <- lBAL %>%
   inner_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
 
 #write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\environment_trait2.csv" )
@@ -147,17 +163,18 @@ trait_transform%>%  anti_join(environment_trait, by = c("n_parcelle", "n_carre",
 
 ```
 
-There is still the same individual that is missing.
-
-### competition index 
-
 ```{r}
-environment_trait <- environment_trait %>% 
-  dplyr::rename(lBAL = GNeighbors) %>% 
-  dplyr::select(-PointWeight, -nNeighbors)
+hegyi <- read.csv(file.path(path, "Full_Hegyi.csv"),header = T, dec = ".", sep=",") %>%  rename( hegyi = GNeighbors)
 
-#write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment_trait2.csv" )
+
+environment_trait <-hegyi  %>% 
+  inner_join(environment_trait,  by = c("n_parcelle", "n_carre", "n_arbre"))
+
+#write.csv(environment_trait2, file = "C:\\Users\\emduc\\Desktop\\environment_trait2.csv" )
+
+trait_transform%>%  anti_join(environment_trait, by = c("n_parcelle", "n_carre", "n_arbre"))
 ```
+
 
 ##Allié 2015 gis data 
 
@@ -181,10 +198,11 @@ there is an X colunm that is useless so we remove it
 ```{r}
 environment_trait <- environment_trait %>%
   mutate(Dawkins = as.factor(Dawkins), ID= as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>% 
-  rename(LDMC = LMDC , LT = LT_mean , LA = Area_exclude , Cc = Chloro_content, BT = Bark_thickness, BD = Bark_infra_density, WD = Wood_infra_density) %>% 
-  dplyr::select( -X , -d_log_gap, -hydromorphy , -waterlog , -aspect , -drainages, - basal_area, -wood_presence) %>% mutate(wtd = as.character(wtd), topo = as.character(topo))
+  rename(LDMC = LMDC , LT = LT_mean , LA = Area_exclude , CC = Chloro_content, BT = Bark_thickness, BD = Bark_infra_density, WD = Wood_infra_density) %>% 
+  dplyr::select( -X,-X.x, -X.y,-d_log_gap, -hydromorphy , -waterlog , -aspect , -drainages, - basal_area, -wood_presence) %>%
+  mutate(wtd = as.character(wtd), topo = as.character(topo))
 
-write.csv(environment_trait, file ="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\environment_trait.csv" )
+write.csv(environment_trait, file ="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\data_final\\environment_trait.csv" )
 ```
 
 Now we have a data frame that combine functional trait value and some environmental trait value with the maximum observation we can 401. For example a column with topographic type could be added but it match with only 353 observations (don't no why because every symphonia point are included in topographic type polygons..) .Therefore thoses factor levels (bottomland; slope and hilltop) are  summarised in other topographic descriptor because it combine steepness and elevation measures .
