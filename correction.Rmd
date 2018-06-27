@@ -21,35 +21,37 @@ path <- "F:\\Stage Ecofog\\symphostage\\" # path to all data files currently in 
 # data upload 
 
 ```{r data}
-DW <- read.csv(file.path(path, "PoidsSecSympho.csv"),header = T, dec = ",", sep=";")
+DW <- read.csv(file.path(path, "PoidsSecSympho.csv"),header = T, dec = ",", sep=";") # leaf dry weight data 
 
-DW_out <- read.csv(file.path(path, "PoidsSecOutliers.csv"),header = T, dec = ",", sep=";")
+DW_out <- read.csv(file.path(path, "PoidsSecOutliers.csv"),header = T, dec = ",", sep=";") # leaf dry weight second time weighted 
 
-Ecorce<- read.csv(file.path(path, "Measures - Individuals2.csv"), header = T, dec=",", sep=";")[-1]
+Ecorce<- read.csv(file.path(path, "Measures - Individuals2.csv"), header = T, dec=",", sep=";")[-1] # bark type from field observation
 
-LTh <- read.csv(file.path(path, "Measures - Fresh.csv"), header = T, dec=".", sep=";")[-1]
+LTh <- read.csv(file.path(path, "Measures - Fresh.csv"), header = T, dec=".", sep=";")[-1] # leaf thickness measure 
 
-LA_include_holes <- read.csv(file.path(path, "Results include holes.csv"), header = T, dec=".", sep=";") %>%
+LA_include_holes <- read.csv(file.path(path, "Results include holes.csv"), header = T, dec=".", sep=";") %>% # leaf area with holes in blade included 
   mutate(ID = gsub("Q","",ID)) %>% 
-  mutate(ID = gsub("p","P",ID))
+  mutate(ID = gsub("p","P",ID)) # correction in ID 
 
-densite <- read.csv(file.path(path, "densite sympho.csv"),header = T, dec = ",", sep=";")
-SPAD <- read.csv(file.path(path, "Measures - SPAD.csv"),header = T, dec = ".", sep=",")[-1]
+densite <- read.csv(file.path(path, "densite sympho.csv"),header = T, dec = ",", sep=";") # branch tissue measures
+
+SPAD <- read.csv(file.path(path, "Measures - SPAD.csv"),header = T, dec = ".", sep=",")[-1] # SPAD measures 
+
 paracou <- read.csv(file.path(path, "Symphonia_Paracou.csv"),header = T, dec = ",", sep=";") %>% 
-  filter(campagne == 2015)
+  filter(campagne == 2015) # tree ID from paracou (with old names) 
 
 LA_exclude_holes <- read.csv(file.path(path, "Results excludes holes.csv"), header = T, dec=".", sep=";") %>%
   mutate(ID = gsub("Q","",ID)) %>% 
-  mutate(ID = gsub("p","P",ID))
+  mutate(ID = gsub("p","P",ID)) # leaf area measure with holes in bladed excluded
 
   # LA_exclude_holes %>%  dplyr::select(ID,Area) %>%
   # filter(ID == "P11-4-989" | ID == "P11-1-472")
 
-LA_corrected_scans <- read.csv(file.path(path, "Results Scans corrected.csv"), header = T, dec=".", sep=";")
+LA_corrected_scans <- read.csv(file.path(path, "Results Scans corrected.csv"), header = T, dec=".", sep=";") # leaf number with the right orther 
 
-LA_misscount_include <- read.csv(file.path(path, "Results_include_holes_ misscount.csv"), header = T, dec=".", sep=";")
+LA_misscount_include <- read.csv(file.path(path, "Results_include_holes_ misscount.csv"), header = T, dec=".", sep=";")  # leaf area measures for non miss detected leaves with IMageJ
 
-LA_misscount_exclude <- read.csv (file.path(path, "Results_exclude_holes_ misscount.csv"), header = T, dec=".", sep=";")
+LA_misscount_exclude <- read.csv (file.path(path, "Results_exclude_holes_ misscount.csv"), header = T, dec=".", sep=";")  # leaf area measures for non miss detected leaves with IMageJ
 ```
 
 # data Individuals, SPAD and Leaf thickness from drive
@@ -58,41 +60,33 @@ LA_misscount_exclude <- read.csv (file.path(path, "Results_exclude_holes_ missco
 cols <- c("n_parcelle", "n_carre", "n_arbre")
 names(Ecorce)[3:5] <- cols
 names(SPAD)[1:3] <-  cols
-names(LTh)[1:3] <-  cols
+names(LTh)[1:3] <-  cols # rename column plot ; subplot and tree with the same name of paracou column 
 
-anti_join(Ecorce, SPAD, by = cols)
+anti_join(Ecorce, SPAD, by = cols) # check if cols number are similar in both dataset
 anti_join(Ecorce, LTh, by = cols)
 
 data <- Ecorce %>% 
   left_join(SPAD, by = cols) %>% 
-  left_join(LTh, by = c(cols, "Feuille"))
+  left_join(LTh, by = c(cols, "Feuille"))# melt all data set with corresponding cols number and leaf number to create data
 
-data %>%  left_join(paracou, by = cols) %>% 
-  filter(is.na(idArbre))
-
-indParacou <- with(paracou, paste(paste0("P", n_parcelle), n_carre, 
-                              n_arbre, sep = "_"))
-indData <- with(data, paste(paste0("P", n_parcelle), n_carre, 
-                              n_arbre, sep = "_"))
-base::setdiff(indData, indParacou)
 
 ```
 
 # Dry weight
 
 ```{r}
-data2 <- data %>%  left_join(paracou, by = cols ) 
+data2 <- data %>%  left_join(paracou, by = cols ) # melting data en paracou data for tree informations 
 
 names(DW)[1:3] <- cols
 DW<- DW  %>%  
-  dplyr::rename("1" = F1) %>% 
+  dplyr::rename("1" = F1) %>% # change column name 
   dplyr::rename("2" = F2) %>% 
   dplyr::rename("3" = F3) %>%
   dplyr::rename("4" = F4) %>% 
   dplyr::rename("5" = F5) %>% 
   dplyr::select(cols, "1","2","3","4","5") %>% 
-  reshape2::melt(DW, id.vars = c("n_parcelle","n_carre", "n_arbre"), measure.vars = c("1","2","3","4","5"), variable.name = "Feuille" ,value.name ="DryW" ) %>% 
-  arrange(n_parcelle, n_carre, n_arbre, Feuille) %>% 
+  reshape2::melt(DW, id.vars = c("n_parcelle","n_carre", "n_arbre"), measure.vars = c("1","2","3","4","5"), variable.name = "Feuille" ,value.name ="DryW" ) %>% # large to long format
+  arrange(n_parcelle, n_carre, n_arbre, Feuille) %>% #order column 
   mutate(Feuille = as.integer(Feuille)) %>% 
   dplyr::rename("n_feuille"= Feuille)
   
@@ -114,23 +108,20 @@ data2 %<>% rename("n_feuille"= Feuille)
 
 cols <- c("n_parcelle", "n_carre", "n_arbre", "n_feuille")
 
-anti_join(DW, data2, by = cols)
+anti_join(DW, data2, by = cols)# check missing cols number = missing individuals or ID misstake
 
-data3 <- data2 %>% left_join(DW, by = cols) 
+data3 <- data2 %>% left_join(DW, by = cols) # melt data2 and leaf dry weight
 
 data3 %>% 
-  filter(is.na(DryW)) %>% 
-  select(n_parcelle, n_carre, n_arbre, n_feuille,
-         SPAD.1, LT.1, Poids.frais, DryW, ecorce)
+  filter(is.na(DryW)) # check presence of kown missing values (4 individual with missing sampled leaves and 2 individuals with non symphonia leaves that had been removed)
 
-#DW[grep("symphonia", DW$F6),]
 ```
 6 lignes doivent appara^tre car il ya 4 individus avec 4 feuilles échantillionnées et 2 individus donc la feuilles n'était pas du symphonia (cf.commentaire csv)
 
 comparaison DW et DW_out 
 
 ```{r}
-DW %>% full_join(DW_out,by = c("n_parcelle", "n_carre", "n_arbre", "n_feuille")) %>%  filter(!is.na(DryW_out)) %>%  group_by(n_parcelle, n_carre, n_arbre) %>%  summarise_at(c("DryW", "DryW_out"),mean)
+DW %>% full_join(DW_out,by = c("n_parcelle", "n_carre", "n_arbre", "n_feuille")) %>%  filter(!is.na(DryW_out)) # %>%  group_by(n_parcelle, n_carre, n_arbre) %>%  summarise_at(c("DryW", "DryW_out"),mean)
 ```
 
 # LA 
@@ -216,6 +207,7 @@ Now we have a transitory final table which have to be screened one again to know
 
 
 ### non count leaf detection
+
 Sélection uniquement des identifiant via group by et ajout avec summarise du nombre de répétition de l'identifiant groupé pour data3 dans data3_count. De même on fait ca avec LA_exclude_holes et plus tard avec include_ holes dans LA_count. Et en plus on créer un index avec P pour correspondre au nom des scan.pdf auquel on ajoute aussi une colonne avec le numéro de la ligne correspondante afin de pouvoir faire la correspondance avec les fichier d'ellispe en sortie d'Image J, que l'on ne peut pas directement nommés avec les noms des scan.pdf. 
 
 PS : pas besoin de l'arrange ID l'ensemble des données dans la table sont déjà ordonnée commes les sorties d'ImageJ.
@@ -597,9 +589,9 @@ write.csv2(LA_data_exclude_final2 , file.path(path, "LA_data_exclude_final2.csv"
 #   mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%
 #   filter(ID == "11_4_983" | ID == "11_1_742" | ID == "1_4_2853" | ID == "2_1_2301"| ID == "6_2_2976"| ID == "7_3_2806"| ID == "7_3_2666"| ID == "13_2_469"| ID == "13_3_538"| ID == "14_2_2874"| ID == "15_2_1113"| ID == "15_1_575"| ID == "16_1_2783")%>% dplyr::select(ID, n_feuille, Area) %>% arrange(ID, Area) 
 
-LA_data_exclude_final2%>%
-  mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%
-  filter(ID == "1_3_106" | ID == "10_1_3300" | ID == "14_1_2830" | ID == "16_22_2787"| ID == "16_11_545"| ID == "16_15_43"| ID == "4_4_3403"| ID == "5_2_2952"| ID == "6_1_2924"| ID == "6_4_2300"| ID == "6_4_2968"| ID == "7_3_2807"| ID == "7_3_679"| ID == "7_3_2812"| ID == "8_3_3487"| ID == "8_3_3491"| ID == "8_3_3493"| ID == "8_3_3218") %>% dplyr::select(ID, n_feuille, Area) %>% arrange(ID, Area) %>% group_by(ID) %>% summarise_at("Area", mean, )
+# LA_data_exclude_final2%>%
+#   mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%
+#   filter(ID == "1_3_106" | ID == "10_1_3300" | ID == "14_1_2830" | ID == "16_22_2787"| ID == "16_11_545"| ID == "16_15_43"| ID == "4_4_3403"| ID == "5_2_2952"| ID == "6_1_2924"| ID == "6_4_2300"| ID == "6_4_2968"| ID == "7_3_2807"| ID == "7_3_679"| ID == "7_3_2812"| ID == "8_3_3487"| ID == "8_3_3491"| ID == "8_3_3493"| ID == "8_3_3218") %>% dplyr::select(ID, n_feuille, Area) %>% arrange(ID, Area) %>% group_by(ID) %>% summarise_at("Area", mean)
 
 ```
 
@@ -619,9 +611,9 @@ mutate(feuille_f  = ifelse(is.na(disordered), n_feuille,disordered)) %>%
 #   mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%
 #   filter(ID == "11_4_983" | ID == "11_1_742" | ID == "1_4_2853" | ID == "2_1_2301"| ID == "6_2_2976"| ID == "7_3_2806"| ID == "7_3_2666"| ID == "13_2_469"| ID == "13_3_538"| ID == "14_2_2874"| ID == "15_2_1113"| ID == "15_1_575"| ID == "16_1_2783") %>% dplyr::select(ID, n_feuille, Area) %>% arrange(ID, Area) 
 
-Leaf_Area_data_exclude %>%
-  mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%
-  filter(ID == "1_3_106" | ID == "10_1_3300" | ID == "14_1_2830" | ID == "16_22_2787"| ID == "16_11_545"| ID == "16_15_43"| ID == "4_4_3403"| ID == "5_2_2952"| ID == "6_1_2924"| ID == "6_4_2300"| ID == "6_4_2968"| ID == "7_3_2807"| ID == "7_3_679"| ID == "7_3_2812"| ID == "8_3_3487"| ID == "8_3_3491"| ID == "8_3_3493"| ID == "8_3_3218") %>% dplyr::select(ID, n_feuille, Area) %>% arrange(ID, Area) %>% group_by(ID) %>% summarise_at("Area", mean, )
+# Leaf_Area_data_exclude %>%
+#   mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%
+#   filter(ID == "1_3_106" | ID == "10_1_3300" | ID == "14_1_2830" | ID == "16_22_2787"| ID == "16_11_545"| ID == "16_15_43"| ID == "4_4_3403"| ID == "5_2_2952"| ID == "6_1_2924"| ID == "6_4_2300"| ID == "6_4_2968"| ID == "7_3_2807"| ID == "7_3_679"| ID == "7_3_2812"| ID == "8_3_3487"| ID == "8_3_3491"| ID == "8_3_3493"| ID == "8_3_3218") %>% dplyr::select(ID, n_feuille, Area) %>% arrange(ID, Area) %>% group_by(ID) %>% summarise_at("Area", mean)
 ```
 
 ### combination with data3 
@@ -704,7 +696,7 @@ Full_traits_data <- Full_traits_data %>%
 ```
 
 
-## delete SPAD and LT value for leaf 
+## delete SPAD and LT value for leaf that are not symphonia
 
 Only on mean value for the moment 
 
