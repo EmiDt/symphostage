@@ -13,7 +13,6 @@ output:
   
 ---
 
-
 ```{r setup, include=FALSE}
 library(knitr)
 library(dplyr)
@@ -30,8 +29,53 @@ library(ggrepel)
 
 path <- "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\data_final"
 
+theme_black = function(base_size = 12, base_family = "") {
+  
+  theme_grey(base_size = base_size, base_family = base_family) %+replace%
+    
+    theme(
+      # Specify axis options
+      axis.line = element_blank(),  
+      axis.text.x = element_text(size = base_size*0.8, color = "white", lineheight = 0.9),  
+      axis.text.y = element_text(size = base_size*0.8, color = "white", lineheight = 0.9),  
+      axis.ticks = element_line(color = "white", size  =  0.2),  
+      axis.title.x = element_text(size = base_size, color = "white", margin = margin(0, 10, 0, 0)),  
+      axis.title.y = element_text(size = base_size, color = "white", angle = 90, margin = margin(0, 10, 0, 0)),  
+      axis.ticks.length = unit(0.3, "lines"),   
+      # Specify legend options
+      legend.background = element_rect(color = NA, fill = "black"),  
+      legend.key = element_rect(color = "white",  fill = "black"),  
+      legend.key.size = unit(1.2, "lines"),  
+      legend.key.height = NULL,  
+      legend.key.width = NULL,      
+      legend.text = element_text(size = base_size*0.8, color = "white"),  
+      legend.title = element_text(size = base_size*0.8, face = "bold", hjust = 0, color = "white"),  
+      legend.position = "right",  
+      legend.text.align = NULL,  
+      legend.title.align = NULL,  
+      legend.direction = "vertical",  
+      legend.box = NULL, 
+      # Specify panel options
+      panel.background = element_rect(fill = "black", color  =  NA),  
+      panel.border = element_rect(fill = NA, color = "white"),  
+      panel.grid.major = element_blank(),  
+      panel.grid.minor = element_blank(),  
+      panel.margin = unit(0.5, "lines"),   
+      # Specify facetting options
+      strip.background = element_rect(fill = "grey30", color = "grey10"),  
+      strip.text.x = element_text(size = base_size*0.8, color = "white"),  
+      strip.text.y = element_text(size = base_size*0.8, color = "white",angle = -90),  
+      # Specify plot options
+      plot.background = element_rect(color = "black", fill = "black"),  
+      plot.title = element_text(size = base_size*1.2, color = "white"),  
+      plot.margin = unit(rep(1, 4), "lines")
+      
+    )
+  
+}
 ```
 
+# raw data
 
 ```{r include=FALSE}
 environment_trait<- read.csv(file.path(path, "environment_trait.csv"),header = T, dec = ".", sep=",") %>% mutate(wtd = as.character(wtd), topo = as.character(topo)) 
@@ -159,10 +203,8 @@ kable(tab, "html", escape = F, align = "c") %>%  kable_styling(bootstrap_options
 ```
 
 
-
 ## Outliers 
 
-An outlier is an observation that is numerically distant from the rest of the data. When reviewing a boxplot, an outlier is defined as a data point that is located outside the fences (“whiskers”) of the boxplot (e.g: outside 1.5 times the interquartile range above the upper quartile and below the lower quartile).
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
@@ -235,8 +277,6 @@ rm("SLA", "LDMC", "LT", "CC", "outliers_data")
 
 environment_trait$LDMC[which(environment_trait$ID == "15_1_198" | environment_trait$ID == "1_2_387")] <- NA
 
-
-
 #environment_trait %>%  filter(ID == "1_2_387" | ID == "15_1_198")
 ```
 
@@ -303,13 +343,6 @@ kable(tab2, "html", escape = F, align = "c") %>%  kable_styling(bootstrap_option
 #rm(tab2)
 ```
  (BAL Steneker and Jarvis 1963) (Dawkins and Field 1978) (TWI Beven and Kirkby 1979)
-
-
-
-Interaction between diameter and different environmental variables will be added in the additive linaer model given that neighbors competition impact (lBAL) is modulated by diameter of the focal tree. As an hight tree which already reech the canopy would be less affect by crowding and shadowing neighbors effect. Moreover diameter also interact with d_gap because bigger tree could benefit more from gap light than a smaller one close to the same gap. This is the same idea for bottom land (wetness value  between 1.395 and 8.010 according to topographic category from F.Morneau (2007)) and diameter because bottom land area in guyanian tropical rain forest are known to be more biologically dynamic which means stand renewal is faster due more frequent tree fall which induce more light gap. An other particularity of bottom land is that the mean canopy height is lower than other areas like slope and hilltop (voir cours stéphane B.ferry ?), so wetness maybe modulate positively light availability.
-
-The only variable that depict ontogenic stage is the diameter at breast height (DBH). For every tree sapling and early ontogenic stage individual are in the underlayer of canopy and as we know light availability decrease from canopy to the ground. Irradiance is a very heterogeneous resource, and can be as high as 47 mol m−2 day−1 above the canopy and as low as 0·15 mol m−2 day−1 at the forest floor (Chazdon 1988). Thus functional response of younger tree to the environment would be different from older individual in different light condition. For example younger individual would have higher SLA value to maximise light interceptection and so their growth to reech the canopy layer.
-Consequently diameter would modulate SLA value and other light modulated traits.  
 
 ## Covariation 
 
@@ -378,36 +411,13 @@ corrplot(cor_envi, method="color",
 
 
 
-
-#### test with Heyi 
-
-```{r , include=FALSE}
-environment_standar2 <- environment_trait %>% 
-  dplyr::select(n_parcelle, n_carre, n_arbre, Dawkins, Carbon , Phosphorus ,wetness,dem,slope, d_gap, alt_creek, TRI,hegyi) %>% 
-  mutate(alt_creek = as.numeric((alt_creek)), Dawkins = as.factor(Dawkins),d_gap = log(d_gap))  
-
-environment_standar2[,7:13] <- as.data.frame(scale(as.matrix(environment_standar2[,7:13]),scale = TRUE, center = TRUE), na.rm = TRUE) 
-
-```
-
- 
-```{r echo=FALSE}
-acp_envi <- PCA(environment_standar2[,7:13], graph =  FALSE)
-fviz_pca_var (acp_envi , axes = c(1, 2), scaling =2, col.var = "contrib")
-#fviz_screeplot(acp_envi, ncp=10)
-```
-```{r}
-rm(environment_standar2)
-```
-
-
 ### adding soil data (C, P)
 
 This subset (169 individuals) of the main data set brings information about carbon and phosphorus soil concentration at the sampled individual place (mean). Soil element concentration  come from Allié *et al,* 2015 and are only availaible for plot number 1-6-11-13-14-15. 
 
 
 ```{r echo=FALSE}
-envi_soil <- environment_standar %>%  filter(!is.na(Carbon)) %>% rename( alt_crique = alt_creek, Carbone = Carbon, d_trouée = d_gap , Phosphore = Phosphorus, Pente = Slope , Altitude = Alt)
+envi_soil <- environment_standar %>%  filter(!is.na(Carbon)) 
 acp_soil <- PCA( envi_soil[,5:13], graph =  FALSE)
 fviz_pca_var (acp_soil , axes = c(1, 2), scaling =2, col.var = "contrib", label = FALSE)+
    labs(title ="")+theme_black()+ggrepel:: geom_text_repel(label=colnames(envi_soil[5:13]), col="white")
@@ -415,17 +425,10 @@ fviz_pca_var (acp_soil , axes = c(1, 2), scaling =2, col.var = "contrib", label 
 
 ```
 
-65.1% of the total inertia is explain by he first factorial plan so others will be not show or look here. Phosphore is  positively correlated to wetness whereas Carbon soil concentration is negatively correlated to wetness.  It means that Phosphor concentration are higher in dryer area (i e hilltop and slope) whereas Carbon is value are higher in wetter area (i e bottomland). 
-
-```{r echo=FALSE}
-pairs(envi_soil[,5:12], lower.panel = panel.smooth, upper.panel = panel.cor)
-```
-As correlation coefficient (Spearman method do no assumption of normality)between these desecriptor is low which limited redundant information, we choose to keep them all as modelling variables. 
-
 
 ### Dawkins 
 
-Dawkins variables is factorial (five different levels) and represent canopy light exposure. Tropical rain forest are verticuly structured , different layer can be depicted by their light avalaibility.The darkest one is sapling layer and canopy is the lighter. Thus for a given individual light exposure denpends on its height and diameter. 
+
 
 ```{r echo=FALSE}
 ggplot(environment_trait, aes(Dawkins, diameter, fill = Dawkins))+
@@ -446,7 +449,7 @@ ggplot(environment_trait, aes(Dawkins, diameter, fill = Dawkins))+
 TukeyHSD(aov(lm(diameter~Dawkins, data = environment_trait)))
 ```
 
-Here each Dawkins levels correspond to a significant different diameter class (t.test result with ref.group ".all."). Tukey HSD test result is significant for every pairs group which mean every category have mean diameter significantly different from each others. We select diamter as a modelling variable because it is continus and could interact with others parameter (see below : wetness, lBAL).
+
 
 # How does functional traits covariate at the intra-specific scale ? 
 ## Leaf functional traits
@@ -480,9 +483,7 @@ fviz_pca_var(trait_pca , axes = c(1, 2), label ="var", scaling =2, col.var=spect
 # cor(trait_standar[,5:9],use = "na.or.complete",  method = "spearman")
 ```
 
-Projection of the first and second axis explain 76.3% of the total inertia, only the first factorial plan is retained. PCA is realized with 401 observations and standardized data (z-score method) but  results does not change with raw data. Chlorophyll content and LDMC are highly correlated and both are negatively correlated to Leaf area.  SLA and Leaf thickness are opposed , weakly correlated to the other variables. 
 
-This intraspecific corelation pattern correspond to correlation found at the interspectic scale. SLA and LA are knonw to be unrelated (Wright et al,2007)
 
 ## Leaf and Wood functional trait 
 
@@ -520,17 +521,6 @@ trait_LES_SES <- PCA(bois[,c("BT", "BD", "WD", "SLA", "LDMC")], graph = F)
 fviz_pca_biplot(trait_LES_SES, axes = c(1, 2), label ="var", scaling =2, col.var = "contrib", col.ind="grey")
 ```
 
-```{r}
-summary(lm(bois$BT~bois$BD))
-summary(lm(bois$BT~bois$WD))
-```
-
-
-Projection of the first and second axis explain 60.2% of the total inertia, only the first factorial plan is retained. PCA is realized with 50 observations and standardized data (z-score method), results does not change with raw data.  We can see that relation between leaf functional trait stay  identical. Then smaller individuals headcount does not influence functional trait relation in this functional trait correlation analysis.
-
-```{r}
-cor(bois[,9:16])
-```
 
 ```{r}
 library(corrplot)
@@ -575,180 +565,9 @@ corrplot(cor_trait, method="color",
          )
 ```
 
-## Is trait covariation pattern modifed at local topographic scale ?
 
+# coefficient of variation
 
-```{r trait topo, include=FALSE}
-trait_topo <- environment_trait %>% 
-  dplyr::select(topo, LT, CC, LDMC, SLA, LA, wtd) %>% filter(!is.na(SLA)) %>% filter(!is.na(LDMC)) %>% filter(!is.na(CC)) %>%  filter(!is.na(topo)) 
-
-trait_topo[,2:6] <- as.data.frame(scale(as.matrix(trait_topo[,2:6]), center = TRUE, scale = TRUE))
-
-```
- 
- 
-```{r covartopo, echo=FALSE, message=FALSE, warning=FALSE}
-
-trait_60 <- trait_topo %>%   filter(wtd =="0-60")
-
-trait_P <- trait_topo %>%   filter(wtd== "Pente")
-
-trait_Pl <- trait_topo %>%   filter(wtd== "Plateau")
-
-trait_100 <- trait_topo %>%  filter(wtd== "60-100")
-
-#trait_P100 <- trait_topo %>%  filter(wtd== "100")
-
-BF_100 <-fviz_pca_var(PCA(trait_100[,2:6], graph = F) , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")+
-  labs(title ="Trait covariation in watertable 60-100")
-BF_60 <- fviz_pca_var(PCA(trait_60[,2:6], graph = F) , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")+
-  labs(title ="Trait covariation in watertable 0-60")
-P<- fviz_pca_var(PCA(trait_P[,2:6], graph = F) , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")+
-  labs(title ="Trait covariation in slope ")
-Pl <-fviz_pca_var(PCA(trait_Pl[,2:6], graph = F) , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")+
-   labs(title ="Trait covariation in hilltop ")
-
-plot_grid(BF_60, BF_100, P ,Pl, ncol = 2, nrow = 2)
-
-# trait_100 <- PCA(trait_100[,2:6], graph = F)
-# trait_60 <-PCA(trait_60[,2:6], graph = F)
-# trait_P <- PCA(trait_P[,2:6], graph = F)
-# trait_Pl <- PCA(trait_Pl[,2:6], graph = F) 
-# 
-# round(trait_Pl$var$contrib,2)
-# round(trait_60$var$contrib,2)
-
-#rm("trait_100", "trait_P", "trait_Pl", "trait_60", "BF_100", "P", "Pl", "BF_60")
-
-```
-
-
-Bottomland with  watertable between 0-60cm : 137 individuals
-Bottomland with  watertable between 60-100cm : 34 individuals
-pente : 141 individuals
-plateau : 83 individuals
-
-```{r covartopobois, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
-bois <- environment_trait %>%  filter(!is.na(BT)) %>%  dplyr::select(-Branch_diameter)
-bois[,12:19] <- as.data.frame(scale(as.matrix(bois[,12:19]), center = TRUE, scale = TRUE))
-
-trait_60 <- bois %>%   filter(wtd =="0-60")
-
-trait_P <- bois %>%   filter(topo== "Pente")
-
-trait_Pl <- bois %>%   filter(topo== "Plateau") 
-
-trait_100 <- bois %>%  filter(wtd== "60-100")
-
-
-P_Pl <-fviz_pca_var(PCA(trait_100[,12:19], graph = F) , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")+
-  labs(title ="Trait covariation in watertable 60-100")
-BF <- fviz_pca_var(PCA(trait_60[,12:19], graph = F) , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")+
-  labs(title ="Trait covariation in watertable 0-60")
-P<- fviz_pca_var(PCA(trait_P[,12:19], graph = F) , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")+
-  labs(title ="Trait covariation in slope ")
-Pl <-fviz_pca_var(PCA(trait_Pl[,12:19], graph = F) , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey")+
-  labs(title ="Trait covariation in hilltop ")
-
-plot_grid(P_Pl, BF, P, Pl , ncol = 2, nrow = 2)
-
-#rm("trait_test", "trait_P", "trait_Pl", "trait_BF", "P_Pl", "BF", "P", "Pl")
-```
-0-60 20
-60-100 6 
-Slope 15 individuals
-Hilltop 8 individuals
-
-
-covariation des trait with Pearson coefficient correlation 
-```{r}
- cor(trait_60[,2:6],use = "na.or.complete",  method = "pearson")
-cor(trait_Pl[,2:6],use = "na.or.complete",  method = "pearson")
- cor(trait_100[,2:6],use = "na.or.complete",  method = "pearson")
-cor(trait_P[,2:6],use = "na.or.complete",  method = "pearson")
-cor(trait_standar[,5:9],use = "na.or.complete",  method = "pearson")
-```
-
-LA and LT correlation  in global sample is similar to wtd 60-100 (0.11 and 0.03) whereas other cotegories have hight negative correlation coefficient (-0.57 ;-0.37 :-0.22)
-
-
-
-
-## sma : strengh of correlation
-```{r include=FALSE}
-library(smatr)
-trait_standar <- trait_standar %>%  left_join(environment_trait[,c("n_parcelle","n_carre", "n_arbre", "wtd")], by = c("n_parcelle", "n_carre", "n_arbre"))
-```
-
-```{r}
-sma(SLA~LDMC, data= (trait_standar %>%   filter(wtd =="60-100")))
-```
-
-
-
-```{r}
-par(mfrow=c(2,2))
-plot(sma(SLA~LDMC, data= trait_standar), col = "black",lwd=3)
-abline(sma(SLA~LDMC, data= (trait_standar %>%   filter(wtd =="Pente"))), col = "orange",lwd=3) ; abline( sma(SLA~LDMC, data= (trait_standar %>%   filter(wtd =="60-100"))), col="blue",lwd=3) ; abline(sma(SLA~LDMC, data= (trait_standar %>%   filter(wtd =="Plateau"))), col="red",lwd=3) ; abline( sma(SLA~LDMC, data= (trait_standar %>%   filter(wtd =="0-60"))),col="violet",lwd=3)
-
-plot(sma(LA~LT, data= trait_standar), col = "black",lwd=3, main = " data in topographic/wattertable categories, 393 observations", sub = "black : total ;orange : slope; red : hilltop ; violet : bottomland 0-60; blue : bottomland 60-100")
-abline(sma(LA~LT, data= (trait_standar %>%   filter(wtd =="Pente"))), col = "orange",lwd=3) ; abline( sma(LA~LT, data= (trait_standar %>%   filter(wtd =="60-100"))), col="blue",lwd=3) ; abline(sma(LA~LT, data= (trait_standar %>%   filter(wtd =="Plateau"))), col="red",lwd=3) ; abline( sma(LA~LT, data= (trait_standar %>%   filter(wtd =="0-60"))),col="violet",lwd=3)
-
-plot(sma(LA~CC, data= trait_standar), col = "black",lwd=3)
-abline(sma(LA~CC, data= (trait_standar %>%   filter(wtd =="Pente"))), col = "orange",lwd=3) ; abline( sma(LA~CC, data= (trait_standar %>%   filter(wtd =="60-100"))), col="blue",lwd=3) ; abline(sma(LA~CC, data= (trait_standar %>%   filter(wtd =="Plateau"))), col="red",lwd=3) ; abline( sma(LA~CC, data= (trait_standar %>%   filter(wtd =="0-60"))),col="violet",lwd=3)
-
-plot(sma(LA~SLA, data= trait_standar), col = "black",lwd=3)
-abline(sma(LA~SLA, data= (trait_standar %>%   filter(wtd =="Pente"))), col = "orange",lwd=3) ; abline( sma(LA~SLA, data= (trait_standar %>%   filter(wtd =="60-100"))), col="blue",lwd=3) ; abline(sma(LA~SLA, data= (trait_standar %>%   filter(wtd =="Plateau"))), col="red",lwd=3) ; abline( sma(LA~SLA, data= (trait_standar %>%   filter(wtd =="0-60"))),col="violet",lwd=3)
-#rm("trait_100", "trait_P", "trait_Pl", "trait_60", "BF_100", "P", "Pl", "BF_60")
-
-plot(sma(LA~LT, data= trait_standar %>%   filter(wtd =="60-100")), col = "black",lwd=3, main = " data in bottomland 60-100 categories, 34 observations")
-
-plot(sma(LA~LT, data= trait_standar ), col = "black",lwd=3, main = " data total, 402 observations")
-```
-control if covariation between LA and LT are modified in stable data for LT , it seems taht only global sample if modified and now follow 0-60 and hilltop variaiton pattern. 
-```{r}
-LT_decrease <- c("3","7","2","16","8","9","10","11","12","6") 
-data_LT <- trait_standar %>% mutate(n_parcelle = as.factor(n_parcelle)) %>%  filter (!n_parcelle %in% LT_decrease )
-
-plot(sma(LA~LT, data= data_LT), col = "black",lwd=3, main = " LT stable, 183 observations", sub = "black : total ;orange : slope; red : hilltop ; violet : bottomland 0-60; blue : bottomland 60-100")
-abline(sma(LA~LT, data= (data_LT %>%   filter(wtd =="Pente"))), col = "orange",lwd=3) ; abline( sma(LA~LT, data= (data_LT %>%   filter(wtd =="60-100"))), col="blue",lwd=3) ; abline(sma(LA~LT, data= (data_LT %>%   filter(wtd =="Plateau"))), col="red",lwd=3) ; abline( sma(LA~LT, data= (data_LT %>%   filter(wtd =="0-60"))),col="violet",lwd=3)
-
-
-```
-
-control if in stable data for LT covariation are modified or not and they are not 
-
-```{r}
-trait_LT <- PCA(data_LT[,5:9], graph = F)
-fviz_pca_var(trait_LT , axes = c(1, 2), label ="var", scaling =2, col.var="contrib", col.ind="grey", title = " LT stable PCA")
-```
-
-```{r}
- cor(data_LT[,5:10] %>% filter(wtd =="Pente") %>% select(-wtd),use = "na.or.complete",  method = "pearson")
-cor(data_LT[,5:10] %>% filter(wtd =="Plateau")%>% select(-wtd),use = "na.or.complete",  method = "pearson")
- cor(data_LT[,5:10] %>% filter(wtd =="0-60")%>% select(-wtd),use = "na.or.complete",  method = "pearson")
-cor(data_LT[,5:10] %>% filter(wtd =="60-100")%>% select(-wtd),use = "na.or.complete",  method = "pearson")
-cor(data_LT[,5:9],use = "na.or.complete",  method = "pearson")
-```
-
-
-```{r}
- obj <- sma(SLA~LDMC, data= trait_standar)
-intercept <- obj$coef[[1]][1, 1]
-slope<- obj$coef[[1]][2, 1]
-
-ggplot(trait_standar, aes(x=SLA, y=LDMC))+
-geom_point()+
-  geom_abline(data=trait_standar, aes(slope=slope, intercept=intercept))+
-   annotate("text", x = 2, y=2.3, label = "SMA R-squared:  0.35 
-            slope : -0.99")
-
-```
-
-
-# Is intraspecific trait variability equal for every functional trait ?
-
-The most simple way to calculate the intraspecific variability of a functional trait is the coefficient of variation (in %) (Messier *et al,* 2016 ; Fajardo and Piper 2011;  Jung *et al,* 2010). It is an dimensionless value that allowed to compare the range of value for each functional trait.  Coefficient of variation is calculated on raw data with any standardisation or transformation (as it could be log10 transformed for Leaf area) 
 
 ```{r include=FALSE}
 CV <- function(mean, sd){
@@ -785,9 +604,6 @@ rm("CV", "sd_data", "mean_data","CV_data")
 ## Variance partitionning analysis 
 
 
-
-
-
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 library(ape)
 library(nlme)
@@ -806,7 +622,6 @@ varcomp_data$LDMC[which(varcomp_data$ID == "15_1_198" |varcomp_data$ID == "1_2_3
 
 
 ### Variance component analysis with morphotype 
-Diameter distribution have been diviede in three classes 10-30 for small individual under mean canopy hieght, canopy individual between 30-60, over canopy individuals 60-100
 
 
 ```{r varcomp2, include=FALSE}
@@ -843,56 +658,6 @@ varcomp_resu2 <- reshape::melt(varcomp_resu2,  id=c("niveau")) %>%
   
 ```
 
-```{r}
-theme_black = function(base_size = 12, base_family = "") {
-  
-  theme_grey(base_size = base_size, base_family = base_family) %+replace%
-    
-    theme(
-      # Specify axis options
-      axis.line = element_blank(),  
-      axis.text.x = element_text(size = base_size*0.8, color = "white", lineheight = 0.9),  
-      axis.text.y = element_text(size = base_size*0.8, color = "white", lineheight = 0.9),  
-      axis.ticks = element_line(color = "white", size  =  0.2),  
-      axis.title.x = element_text(size = base_size, color = "white", margin = margin(0, 10, 0, 0)),  
-      axis.title.y = element_text(size = base_size, color = "white", angle = 90, margin = margin(0, 10, 0, 0)),  
-      axis.ticks.length = unit(0.3, "lines"),   
-      # Specify legend options
-      legend.background = element_rect(color = NA, fill = "black"),  
-      legend.key = element_rect(color = "white",  fill = "black"),  
-      legend.key.size = unit(1.2, "lines"),  
-      legend.key.height = NULL,  
-      legend.key.width = NULL,      
-      legend.text = element_text(size = base_size*0.8, color = "white"),  
-      legend.title = element_text(size = base_size*0.8, face = "bold", hjust = 0, color = "white"),  
-      legend.position = "right",  
-      legend.text.align = NULL,  
-      legend.title.align = NULL,  
-      legend.direction = "vertical",  
-      legend.box = NULL, 
-      # Specify panel options
-      panel.background = element_rect(fill = "black", color  =  NA),  
-      panel.border = element_rect(fill = NA, color = "white"),  
-      panel.grid.major = element_blank(),  
-      panel.grid.minor = element_blank(),  
-      panel.margin = unit(0.5, "lines"),   
-      # Specify facetting options
-      strip.background = element_rect(fill = "grey30", color = "grey10"),  
-      strip.text.x = element_text(size = base_size*0.8, color = "white"),  
-      strip.text.y = element_text(size = base_size*0.8, color = "white",angle = -90),  
-      # Specify plot options
-      plot.background = element_rect(color = "black", fill = "black"),  
-      plot.title = element_text(size = base_size*1.2, color = "white"),  
-      plot.margin = unit(rep(1, 4), "lines")
-      
-    )
-  
-}
-```
-
-
-
-
 
 ```{r varcompplot2, echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(varcomp_resu2,aes(x = variable, y = value1, fill = niveau, order= niveau, na.rm = TRUE))+
@@ -903,17 +668,6 @@ ggplot(varcomp_resu2,aes(x = variable, y = value1, fill = niveau, order= niveau,
   theme_black()
 
 # scale_fill_brewer replace scale_fill_descrete 
-
-```
-
-test de variance partionning sur les donnée de LT non décroissante
-
-```{r include=FALSE}
-LT_decrease <- c("3","7","2","16","8","9","10","11","12","6") 
-varcomp_LT <- varcomp_data %>% mutate(n_parcelle = as.factor(n_parcelle)) %>%  filter (!n_parcelle %in% LT_decrease ) 
-
-varcomp.LT_stable<-varcomp(lme(LT~1,
-random=~1|n_parcelle/morphotype_field/Dawkins/n_arbre, data = varcomp_LT ,na.action = na.omit),1)
 
 ```
 
@@ -1242,14 +996,12 @@ rda_trait <- rda(trait_center,data_standar[,7:10],scale = T, na.omit= T)
 
 ```
 
-Accumulated constrained eigenvalues
-Importance of components:Proportion Explained for RDA1 and RDA2 correspond to explained percentage on graph
+
 
 ```{r RDAplot, echo=FALSE}
 library(ggvegan)
 library(ggord)
 
-# ggord(rda_trait,grp_in =  data_standar$morphotype ,ptslab = TRUE, addsize = 5, parse = TRUE, repel = TRUE, coord_fix = TRUE, veclsz = 1) 
 
 source("C:/Users/emduc/Desktop/symphostage/ninoplot.R")  
 
@@ -1309,9 +1061,6 @@ rda_trait2 %>% ninoplot(arrows = TRUE,layers = c("species", "sites", "biplot", "
 ```
 
 ##  Univariate analysis : linear model
-
-
-Functional traits and environmental variables are standardized by z-score method. Interaction between focal tree diameter and sum of  the local basal area (lBAL) is added to the following model as neighbor competition effect is vary according to the focal tree diameter. 
 
 ### SLA model 
 #### general environment
@@ -1870,7 +1619,7 @@ environment_trait %>% filter(is.na(environment_trait$CC)) %>% nrow()
 ```
 
 
-### Row data set (additive)
+### summary tab for trait model
 
 Summary table for additive model fitted for eall functionnal trait with different sample headcount (401 ; 169 ; 50) 
 ```{r echo=FALSE}
@@ -1969,7 +1718,8 @@ kable(model_tab,"html", escape = F, align = "c") %>%  kable_styling(bootstrap_op
 
 
 
-### Stable LT data
+### Summary table for specific LT data
+
 Summary table for additive model fitted for eall functionnal trait with a sub-sample  from plot number 14-15-13-1-5-4, wich correspond to November sample month when leaf thickness measure is stable over sampling time.
 Soil data cover plot number 1-6-11-13-14-15, two of them correspond to hightly decreasing leaf thickness measures (6 and 11) so they have been removed. 
 
@@ -2005,7 +1755,7 @@ kable(model_tab,"html", escape = F) %>%  kable_styling(bootstrap_options = c("st
 
 ```
 
-In theory, larger leaves have thicker boundary layers and thus overheat more easily than smaller leaves, leading to higher respiration and transpiration costs (Givnish, 1978). In leaf area model, wetness parameter positively influence the distribution. As bottomland are non limitant water area so transpiration cost would be reduce and individual could developp bigger leaf without increasing transpiration costs.
+
 
 ```{r include=FALSE}
 rm("model_tab")
@@ -2016,9 +1766,9 @@ rm("model_tab")
 ## Which variable is the most influent ?
 
 ```{r include=FALSE}
-# rm("SLA_model", "LT_model", "BD_model", "LA_model", "LDMC_model","BT_model", "WD_model", "CC_model")
-# 
-# rm("SLA_soil", "LT_soil", "BD_soil", "LA_soil", "LDMC_soil","BT_soil", "WD_soil", "CC_soil")
+ rm("SLA_model", "LT_model", "BD_model", "LA_model", "LDMC_model","BT_model", "WD_model", "CC_model")
+ 
+ rm("SLA_soil", "LT_soil", "BD_soil", "LA_soil", "LDMC_soil","BT_soil", "WD_soil", "CC_soil")
 ```
 
 
@@ -2031,9 +1781,9 @@ Imp_data <- rbind(Imp_SLA, Imp_LT, Imp_BD, Imp_LA, Imp_LDMC,Imp_BT, Imp_WD, Imp_
 Imp_data_soil <- rbind(Imp_SLA_soil, Imp_LT_soil, Imp_BD_soil, Imp_LA_soil, Imp_LDMC_soil,Imp_BT_soil, Imp_WD_soil, Imp_CC_soil)
 
 write.csv(Imp_data, "C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\data_final\\Imp_data.csv")
-# rm("Imp_SLA", "Imp_LT", "Imp_BD", "Imp_LA", "Imp_LDMC","Imp_BT", "Imp_WD", "Imp_CC")
-# 
-# rm("Imp_SLA_soil", "Imp_LT_soil", "Imp_BD_soil", "Imp_LA_soil", "Imp_LDMC_soil","Imp_BT_soil", "Imp_WD_soil", "Imp_CC_soil")
+ rm("Imp_SLA", "Imp_LT", "Imp_BD", "Imp_LA", "Imp_LDMC","Imp_BT", "Imp_WD", "Imp_CC")
+ 
+ rm("Imp_SLA_soil", "Imp_LT_soil", "Imp_BD_soil", "Imp_LA_soil", "Imp_LDMC_soil","Imp_BT_soil", "Imp_WD_soil", "Imp_CC_soil")
 ```
 
 
@@ -2083,52 +1833,15 @@ fviz_pca_biplot(trait_pca , axes = c(1, 2), label ="var", habillage = 6,  col.va
 ```
 
 
-
-```{r environment standar2, include=FALSE}
-environment_standar <- environment_trait %>% 
-  dplyr::select(lBAL,wetness, d_gap,morphotype_field)
-# environment_standar[,1:3] <- as.data.frame(scale(as.matrix(environment_standar[,1:3]),scale = TRUE, center = TRUE)) 
-```
-
-
-```{r}
-acp_envi <- PCA(environment_standar, quali.sup = 4, graph =  FALSE)
-fviz_pca_biplot (acp_envi , axes = c(1, 2), scaling =1, habillage = 4,  col.var = "black", label = "var")
-```
-
-63.1% of
-
-Globulifera and Sp.1 morphotype 
-
-As N. Pérez-Harguindeguy et al. (2013) SLA is a function of LDMC and LT and both component can contribute to SLA to different degrees, depending on the habitat and plant group in question.
-
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 trait_pca <- PCA(trait_standar %>% filter(!is.na(BT)), quali.sup = 9, graph = F)
 
 fviz_pca_biplot(trait_pca , axes = c(1, 2), label ="var", habillage = 9,  col.var = "white", scaling =1)+theme_black() + scale_fill_discrete( name="Morphotypes")+labs(title ="")
 ```
 
-```{r}
-ggplot(environment_trait,aes(wetness, col = morphotype_field, fill = morphotype_field)) +
-  geom_density(alpha = 0.2) +
-  xlab('Tropographic wetness index')
-```
 
 
-Morphotypes can be identified by different characters, two of them are leaf and fruit size. Globulifera would have bigger fruit and leaves whereas Sp.1 would have smaller leaves and fruits. This pattern is known as the Corner's Rules(Corner, 1949; Ackerly and Donoghue, 1998; Cornelissen, 1999; Westoby and Wright, 2003). As we do not have fruit size data, we can at least confirm that this leaf size association is due to morphotype and not to ontogenetic stage. 
-
-
-```{r}
-ggplot(environment_trait, aes(morphotype_field, LDMC))+
-  geom_boxplot()
-```
-
-```{r}
-ggplot(trait_standar, aes(LA, LT, color = morphotype_field))+
-  geom_point()
-```
-
-# test hyper volume 
+#  hyper volume 
 
 ```{r}
 environment_trait$LDMC[which(environment_trait$ID == "15_1_198" |environment_trait$ID == "1_2_387")] <- NA
@@ -2147,12 +1860,6 @@ trait_standar[,1:5] <- as.data.frame(scale(as.matrix(trait_standar[,1:5]),scale 
 
 ```{r}
 library(hypervolume)
-
-#test <- hypervolume(trait_standar[,1:5],method='box')
-#plot(test)
-
-#varimp = hypervolume_variable_importance(test,verbose=FALSE)
-#barplot(varimp) # contribution respective de variable au volume
 ```
 
 ```{r}
@@ -2200,8 +1907,6 @@ kable(overlap_total %>% filter(Method == "jaccard"),"html", escape = F, align = 
 ```
 
 ### model  nul 
-
-
 
 ```{r hull, echo=FALSE, fig.cap="Null model of the overlapping Convex Hull volume with 999 randomisation"}
 
