@@ -9,13 +9,10 @@ library(dplyr)
 library(reshape2)
 library(magrittr)
 #<<<<<<< HEAD
-path <- "F:\\Stage Ecofog\\symphostage\\" # path to all data files currently in the same place
+path <- "G:\\Stage Ecofog\\symphostage\\" # path to all data files currently in the same place
 #setwd(path)
 # path <- file.path(getwd(), "data") # just a suggestion if you want to organise your data elsewhere like in a data subfolder
-#=======
 
-# path <- "./data/" # To be used on sylvain local machine
-#>>>>>>> 23721802fb9fe032b908aca70639454fff4b47eb
 ```
 
 # data upload 
@@ -379,6 +376,9 @@ Leaf_Area_data_include <- LA_data_Leaf_ordered %>%
   mutate( feuille_f  = ifelse(is.na(disordered), n_feuille,disordered)) %>% 
   select( n_parcelle, n_carre, n_arbre , feuille_f, Area) %>% 
   rename( n_feuille = feuille_f)
+
+
+LA_data_Leaf_ordered  %>% mutate(ID= paste(n_parcelle,n_carre, n_arbre)) %>%  filter(!is.na(disordered)) %>%  group_by(ID, n_parcelle, n_carre, n_arbre)
 ```
 
 ### combination with data3 
@@ -602,7 +602,7 @@ disordered leaves and forleaves individual number table is construct by hand wit
 
 ```{r}
 
-Leaf_Area_data_exclude <- LA_data_Leaf_ordered %>% dplyr::select(-Area) %>% full_join(LA_data_exclude_final2) %>% 
+Leaf_Area_data_exclude <- LA_data_Leaf_ordered %>% full_join(LA_data_exclude_final2) %>% 
 mutate(feuille_f  = ifelse(is.na(disordered), n_feuille,disordered)) %>% 
   select( n_parcelle, n_carre, n_arbre , feuille_f, Area) %>% 
   rename( n_feuille = feuille_f)
@@ -621,10 +621,6 @@ mutate(feuille_f  = ifelse(is.na(disordered), n_feuille,disordered)) %>%
 ```{r}
 data_full2 <- Leaf_Area_data_exclude %>%  
   full_join(data_full, by = c( "n_parcelle", "n_carre", "n_arbre", "n_feuille"), suffix = c("_include", "_exclude"))
-
-data_full2 %>% 
-  mutate(ID = as.factor(paste(n_parcelle, n_carre, n_arbre, sep="_"))) %>%  dplyr::select(ID,n_feuille,Area_exclude) %>%
-  filter(ID == "11_4_983" | ID == "11_1_742")
 ```
 
 
@@ -641,7 +637,8 @@ densite_ID_correspondance <- densite2 %>%
   mutate(n_carre_c = c(3,2)) %>% 
   mutate(n_arbre_c = c(445,87)) %>% 
   select(n_parcelle, n_carre, n_arbre, n_parcelle_c, n_carre_c, n_arbre_c  )
- 
+
+write.csv2(densite_ID_correspondance,file.path(path, "densite_ID_correspondance.csv"))
   
 ```
 

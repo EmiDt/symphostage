@@ -50,16 +50,8 @@ varcomp_data <- Traits_brut_data %>% mutate(SLA = (Area_exclude / Dry_Weight)) %
 ```
 
 ```{r}
-# summary(Traits_brut_data[, c("Dry_Weight", "Fresh_weight", "Area_exclude","SPAD_mean")])
-```
-13-2-73
-```{r}
 # trait_transform %>% mutate(ID = paste(n_parcelle,n_carre,n_arbre, sep="_")) %>% 
 #   filter( ID == "11_1_742" | ID == "11_4_983" | ID == "2_3_236" | ID =="1_2_387" | ID =="13_2_73" | ID =="15_1_198" |ID =="2_3_2530"  )
-```
-
-```{r}
-# summary(trait_transform[, "Chloro_content"])
 ```
 
 Transform mean individuals data because we are looking for inter-individual variation and not intra-individual only for numeric variables here.
@@ -137,15 +129,6 @@ environment_trait <- trait_final %>%  inner_join(environment, by = c("n_parcelle
 
  write.csv(varcomp_data, file ="C:\\Users\\emduc\\Desktop\\Drive\\symphostage\\data_final\\varcomp_data.csv" )
 ```
-
-merging environmental data with transformed trait data, only 401 are in commun so one individual is missing lets found which one 
-
-```{r}
-trait_final %>% anti_join(environment_trait , by= c("n_parcelle", "n_carre", "n_arbre"))
-
-```
-
-So 14-2-459 is present in environment data base 
 
 ## environment from neighbour basal area 
 
